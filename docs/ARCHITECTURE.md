@@ -1,0 +1,186 @@
+# Arquitetura
+
+## Visão geral
+
+O Technolife RustDesk Configurator será uma aplicação multiplataforma com núcleo compartilhado e adaptadores de plataforma.
+
+```text
+                     Technolife RustDesk Configurator
+                                  │
+                       ┌──────────┴──────────┐
+                       │                     │
+                      CLI                 GUI futura
+                       │                     │
+                       └──────────┬──────────┘
+                                  │
+                                 Core
+                                  │
+                 ┌────────────────┼────────────────┐
+                 │                │                │
+              Windows           Linux            macOS
+                 │                │                │
+                 └────────────────┼────────────────┘
+                                  │
+                              RustDesk
+                                  │
+                       Servidor Technolife
+```
+
+## Core
+
+Responsável por:
+
+- orquestrar o fluxo;
+- representar estado e resultado;
+- contratos de detector, instalador, configurador, launcher e validador;
+- política de versão homologada;
+- logging abstrato;
+- tratamento de erros independente de plataforma.
+
+Interfaces candidatas:
+
+```text
+IRustDeskDetector
+IRustDeskInstaller
+IRustDeskConfigurator
+IRustDeskLauncher
+IRustDeskValidator
+IPlatformEnvironment
+IProcessRunner
+IDownloadClient
+```
+
+Os nomes são propostas iniciais e podem ser refinados durante RD-001/RD-002.
+
+## Camada de plataforma
+
+### Windows
+
+Responsável por:
+
+- caminhos padrão e alternativos;
+- elevação;
+- instalação silenciosa;
+- encerramento/reinício do RustDesk;
+- detalhes de serviço/processo;
+- publicação `win-x64`.
+
+### Linux
+
+Primeiro alvo: Debian/Ubuntu x64.
+
+Responsável por:
+
+- descoberta do binário;
+- identificação de distribuição;
+- permissões via sudo quando necessárias;
+- formato/política de instalação homologada;
+- publicação `linux-x64`.
+
+A v1 não deverá tentar suportar automaticamente todas as distribuições Linux.
+
+### macOS
+
+Responsável por:
+
+- localização de `RustDesk.app`;
+- Intel e Apple Silicon;
+- instalação homologada;
+- execução;
+- detecção/orientação de permissões.
+
+Permissões de Accessibility, Screen Recording e, quando necessário, Input Monitoring podem exigir interação do usuário e não devem ser tratadas como silenciosamente automatizáveis sem confirmação técnica.
+
+## Configuração RustDesk
+
+Método preferencial:
+
+```text
+rustdesk --config "<CONFIG_STRING>"
+```
+
+No Windows:
+
+```text
+rustdesk.exe --config "<CONFIG_STRING>"
+```
+
+A implementação deve passar argumentos por API adequada de processos, evitando construir uma única string de shell sempre que possível.
+
+## Instalação
+
+A instalação e a configuração são responsabilidades diferentes.
+
+```text
+RustDesk já instalado
+    → configurar
+
+RustDesk ausente
+    → instalar
+    → configurar
+```
+
+Isso permite usar o configurador mesmo em máquinas onde o RustDesk foi instalado manualmente, por RMM ou por outro método.
+
+## Política de versões
+
+Não usar "latest" como comportamento de produção sem controle.
+
+Cada release do configurador deverá apontar para uma versão de RustDesk homologada por plataforma.
+
+Futuramente essa política poderá vir de um manifesto semelhante a:
+
+```json
+{
+  "windows-x64": {
+    "version": "x.y.z",
+    "url": "...",
+    "sha256": "..."
+  }
+}
+```
+
+O manifesto real só deverá ser criado quando houver uma versão homologada.
+
+## Logging
+
+Logs devem conter:
+
+- versão do configurador;
+- sistema operacional e arquitetura;
+- versão detectada do RustDesk;
+- etapa executada;
+- exit code de processos relevantes;
+- erro técnico sem expor segredos.
+
+Não registrar senhas, tokens ou material secreto.
+
+## Idempotência
+
+Executar o configurador duas ou mais vezes deve ser seguro.
+
+Exemplos:
+
+- não reinstalar RustDesk desnecessariamente;
+- reaplicar a configuração sem corromper estado;
+- não duplicar componentes;
+- não produzir erro apenas porque o estado desejado já existe.
+
+## Interface
+
+A CLI é deliberadamente a primeira interface para reduzir escopo e facilitar testes.
+
+Uma GUI futura deve consumir o mesmo Core, sem copiar regras de negócio.
+
+## Distribuição
+
+Artefatos planejados:
+
+```text
+Technolife-RustDesk-Windows.exe
+technolife-rustdesk-linux
+Technolife-RustDesk-macOS-x64
+Technolife-RustDesk-macOS-arm64
+```
+
+Os releases deverão ser publicados no GitHub Releases após homologação.
