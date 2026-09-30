@@ -55,7 +55,8 @@ public sealed class WindowsRustDeskConfigurator : IRustDeskConfigurator
             installation.ExecutablePath,
             ["--config", configuration.ExportedConfiguration],
             Path.GetDirectoryName(installation.ExecutablePath),
-            ConfigurationTimeout);
+            ConfigurationTimeout,
+            requiresElevation: true);
 
         var processExecution = await _processRunner
             .RunAsync(request, cancellationToken)
@@ -63,9 +64,12 @@ public sealed class WindowsRustDeskConfigurator : IRustDeskConfigurator
 
         if (!processExecution.Success)
         {
-            var errorCode = processExecution.ErrorCode is ErrorCode.PermissionDenied
-                ? ErrorCode.PermissionDenied
-                : ErrorCode.ProcessFailed;
+            var errorCode = processExecution.ErrorCode switch
+            {
+                ErrorCode.ElevationFailed => ErrorCode.ElevationFailed,
+                ErrorCode.PermissionDenied => ErrorCode.PermissionDenied,
+                _ => ErrorCode.ProcessFailed
+            };
 
             return OperationResult.Failed(
                 errorCode,

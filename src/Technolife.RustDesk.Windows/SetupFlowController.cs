@@ -89,8 +89,9 @@ public sealed class SetupFlowController
             SetupProgressStage.Checking => RunningState("Verificando o RustDesk..."),
             SetupProgressStage.Downloading => RunningState("Baixando o RustDesk..."),
             SetupProgressStage.Installing => RunningState("Instalando o RustDesk..."),
+            SetupProgressStage.StartingService => RunningState("Ativando acesso remoto..."),
             SetupProgressStage.Configuring => RunningState("Configurando acesso remoto..."),
-            SetupProgressStage.Validating => RunningState("Validando configuração..."),
+            SetupProgressStage.Verifying => RunningState("Validando configuração..."),
             _ => null
         };
 

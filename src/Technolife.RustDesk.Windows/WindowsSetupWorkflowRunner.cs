@@ -28,10 +28,19 @@ public sealed class WindowsSetupWorkflowRunner : ISetupWorkflowRunner
             new SystemFileProbe(),
             platformEnvironment,
             WindowsRustDeskPaths.FromCurrentEnvironment());
+        var processRunner = new SystemProcessRunner();
+        var serviceManager = new WindowsRustDeskServiceManager(
+            processRunner,
+            new SystemWindowsServiceController(),
+            logger);
         var configurationWorkflow = new RustDeskConfigurationWorkflow(
             detector,
-            new WindowsRustDeskConfigurator(),
-            new WindowsRustDeskValidator(),
+            serviceManager,
+            new WindowsRustDeskConfigurator(processRunner),
+            new WindowsRustDeskValidator(
+                new SystemFileProbe(),
+                serviceManager,
+                new WindowsRustDeskOptionReader(processRunner)),
             platformEnvironment,
             logger);
 
@@ -40,7 +49,7 @@ public sealed class WindowsSetupWorkflowRunner : ISetupWorkflowRunner
             WindowsRustDeskPackageManifest.Create(),
             downloadClient,
             new Sha256FileIntegrityValidator(),
-            new SystemProcessRunner(),
+            processRunner,
             platformEnvironment,
             new SystemInstallerFileSystem(),
             logger);

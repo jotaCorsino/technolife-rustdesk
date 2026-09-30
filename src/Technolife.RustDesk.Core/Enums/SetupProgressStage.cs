@@ -5,8 +5,9 @@ public enum SetupProgressStage
     Checking,
     Downloading,
     Installing,
+    StartingService,
     Configuring,
-    Validating,
+    Verifying,
     Completed,
     Failed
 }

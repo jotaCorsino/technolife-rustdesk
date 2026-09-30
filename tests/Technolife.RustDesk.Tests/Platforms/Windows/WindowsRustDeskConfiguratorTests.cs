@@ -29,6 +29,7 @@ public sealed class WindowsRustDeskConfiguratorTests
             processRunner.Request.Arguments);
         Assert.Equal(@"C:\Program Files\RustDesk", processRunner.Request.WorkingDirectory);
         Assert.True(processRunner.Request.Timeout > TimeSpan.Zero);
+        Assert.True(processRunner.Request.RequiresElevation);
     }
 
     [Fact]

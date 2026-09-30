@@ -4,6 +4,7 @@ using System.Security;
 using Technolife.RustDesk.Core.Abstractions;
 using Technolife.RustDesk.Core.Enums;
 using Technolife.RustDesk.Core.Models;
+using Technolife.RustDesk.Platforms.Abstractions;
 
 namespace Technolife.RustDesk.Platforms.Processes;
 
@@ -11,15 +12,30 @@ public sealed class SystemProcessRunner : IProcessRunner
 {
     private static readonly TimeSpan TerminationWait = TimeSpan.FromSeconds(5);
 
+    private readonly IProcessElevationContext _elevationContext;
+
+    public SystemProcessRunner()
+        : this(new WindowsProcessElevationContext())
+    {
+    }
+
+    public SystemProcessRunner(IProcessElevationContext elevationContext)
+    {
+        ArgumentNullException.ThrowIfNull(elevationContext);
+        _elevationContext = elevationContext;
+    }
+
     public async Task<OperationResult<ProcessResult>> RunAsync(
         ProcessRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        var useShellElevation =
+            request.RequiresElevation && !_elevationContext.IsCurrentProcessElevated;
         using var process = new Process
         {
-            StartInfo = CreateStartInfo(request)
+            StartInfo = CreateStartInfo(request, useShellElevation)
         };
 
         var processStarted = false;
@@ -31,16 +47,16 @@ public sealed class SystemProcessRunner : IProcessRunner
             if (!processStarted)
             {
                 return OperationResult<ProcessResult>.Failed(
-                    request.RequiresElevation
+                    useShellElevation
                         ? ErrorCode.ElevationFailed
                         : ErrorCode.ProcessFailed,
                     "The requested executable could not be started.");
             }
 
-            var standardOutputTask = request.RequiresElevation
+            var standardOutputTask = useShellElevation
                 ? Task.FromResult(string.Empty)
                 : process.StandardOutput.ReadToEndAsync();
-            var standardErrorTask = request.RequiresElevation
+            var standardErrorTask = useShellElevation
                 ? Task.FromResult(string.Empty)
                 : process.StandardError.ReadToEndAsync();
 
@@ -88,7 +104,7 @@ public sealed class SystemProcessRunner : IProcessRunner
             }
 
             return CreateStartFailure(
-                request.RequiresElevation
+                useShellElevation
                     ? ErrorCode.ElevationFailed
                     : ErrorCode.PermissionDenied,
                 exception);
@@ -101,7 +117,7 @@ public sealed class SystemProcessRunner : IProcessRunner
             }
 
             return CreateStartFailure(
-                request.RequiresElevation
+                useShellElevation
                     ? ErrorCode.ElevationFailed
                     : ErrorCode.PermissionDenied,
                 exception);
@@ -114,25 +130,27 @@ public sealed class SystemProcessRunner : IProcessRunner
             }
 
             return CreateStartFailure(
-                request.RequiresElevation
+                useShellElevation
                     ? ErrorCode.ElevationFailed
                     : ErrorCode.ProcessFailed,
                 exception);
         }
     }
 
-    private static ProcessStartInfo CreateStartInfo(ProcessRequest request)
+    private static ProcessStartInfo CreateStartInfo(
+        ProcessRequest request,
+        bool useShellElevation)
     {
         var startInfo = new ProcessStartInfo
         {
             FileName = request.Executable,
-            UseShellExecute = request.RequiresElevation,
-            RedirectStandardOutput = !request.RequiresElevation,
-            RedirectStandardError = !request.RequiresElevation,
-            CreateNoWindow = !request.RequiresElevation
+            UseShellExecute = useShellElevation,
+            RedirectStandardOutput = !useShellElevation,
+            RedirectStandardError = !useShellElevation,
+            CreateNoWindow = !useShellElevation
         };
 
-        if (request.RequiresElevation)
+        if (useShellElevation)
         {
             startInfo.Verb = "runas";
         }

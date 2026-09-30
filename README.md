@@ -30,7 +30,7 @@ rustdesk --config "<CONFIG_STRING>"
 
 | Plataforma | Arquitetura | Status |
 |---|---|---|
-| Windows 10/11 | x64 | RD-007.1 concluída localmente; Beta 2 ainda não publicada |
+| Windows 10/11 | x64 | RD-007.2 concluída localmente; Beta 2 ainda não publicada |
 | Linux Debian/Ubuntu | x64 | Planejado |
 | macOS | Intel x64 | Planejado |
 | macOS | Apple Silicon arm64 | Planejado |
@@ -40,12 +40,12 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-A `v0.1.0-beta.1` foi publicada para validação técnica, mas **não deve ser entregue a clientes finais**. A RD-007.1 corrigiu localmente o fluxo para usuário leigo; a nova experiência ainda aguarda versionamento e publicação em uma futura Beta 2.
+A `v0.1.0-beta.1` foi publicada para validação técnica, mas **não deve ser entregue a clientes finais**. As RD-007.1 e RD-007.2 corrigiram localmente a experiência gráfica e o fluxo administrativo pós-instalação; a nova experiência ainda aguarda teste em máquina limpa, versionamento e publicação em uma futura Beta 2.
 
 | Sistema | Versão | Status | Download |
 |---|---|---|---|
 | Windows 10/11 x64 | `v0.1.0-beta.1` | ⛔ Referência técnica — não usar com cliente final | [Release anterior](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
-| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 RD-007.1 concluída localmente | Ainda não publicada |
+| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 RD-007.2 concluída localmente; teste em máquina limpa pendente | Ainda não publicada |
 | Linux x64 | — | ⚪ Planejado | — |
 | macOS Intel | — | ⚪ Planejado | — |
 | macOS Apple Silicon | — | ⚪ Planejado | — |
@@ -107,11 +107,12 @@ A primeira entrega Windows já cobre um fluxo pequeno e testável:
 
 - detectar RustDesk;
 - instalar a versão homologada quando ausente;
-- aplicar configuração em uma instalação existente;
-- validar;
+- instalar e iniciar o serviço `RustDesk` quando necessário;
+- aplicar a configuração com privilégio administrativo;
+- reler ID Server, Relay Server e chave pública pela CLI oficial e validar os valores;
 - gerar logs.
 
-A experiência Windows da RD-007.1 foi validada localmente por duplo clique. O próximo passo, fora desta tarefa, é definir e publicar a `v0.1.0-beta.2` para testes em campo. Linux/macOS permanecem bloqueados.
+A experiência Windows das RD-007.1 e RD-007.2 foi validada localmente por duplo clique. O próximo passo é repetir o fluxo em uma máquina Windows limpa antes de definir e publicar a `v0.1.0-beta.2`. Linux/macOS permanecem bloqueados.
 
 O planejamento completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -156,6 +157,8 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 - [AGENTS.md](AGENTS.md) — contexto e regras para Codex/agentes de desenvolvimento.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — arquitetura e responsabilidades.
 - [docs/ROADMAP.md](docs/ROADMAP.md) — etapas e tarefas planejadas.
+- [docs/RD-007.1-WINDOWS-UX.md](docs/RD-007.1-WINDOWS-UX.md) — experiência gráfica Windows.
+- [docs/RD-007.2-WINDOWS-SERVICE-CONFIG.md](docs/RD-007.2-WINDOWS-SERVICE-CONFIG.md) — serviço, elevação e validação real Windows.
 - [docs/SERVER-CONFIG.md](docs/SERVER-CONFIG.md) — configuração pública do servidor.
 - [docs/SECURITY.md](docs/SECURITY.md) — regras de segurança e distribuição.
 
@@ -163,7 +166,7 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 A `v0.1.0-beta.1` ainda inicia como CLI e, sem argumentos, mostra ajuda. Esse comportamento foi reprovado para uso por clientes.
 
-A RD-007.1 criou um executável Windows separado que **abre uma interface gráfica mínima e executa automaticamente o fluxo completo de setup por duplo clique, sem argumentos e sem terminal**. A CLI permanece disponível apenas para suporte técnico e diagnóstico.
+A RD-007.1 criou um executável Windows separado que **abre uma interface gráfica mínima e executa automaticamente o fluxo completo de setup por duplo clique, sem argumentos e sem terminal**. A RD-007.2 fez essa GUI solicitar uma única elevação UAC antes do fluxo administrativo. A CLI permanece disponível apenas para suporte técnico e diagnóstico.
 
 Comandos técnicos existentes:
 
@@ -182,7 +185,8 @@ dotnet run --project src/Technolife.RustDesk.Cli -- setup --installer-path <inst
 ```
 
 `configure` exige que o RustDesk já esteja instalado. `setup` detecta a instalação e,
-se ela estiver ausente, instala o pacote homologado, detecta novamente, configura e
+se ela estiver ausente, instala o pacote homologado e detecta novamente. Nos dois
+casos, o fluxo garante que o serviço `RustDesk` exista e esteja `Running`, configura e
 valida. `--installer-path` é uma substituição explícita para testes controlados; o
 caminho não é padrão de produção e o arquivo local passa pela mesma validação SHA-256.
 
@@ -198,8 +202,11 @@ caminho não é padrão de produção e o arquivo local passa pela mesma valida�
 
 O configurador não consulta `latest`. O download usa HTTPS e streaming, e o pacote
 só é executado após o SHA-256 corresponder ao manifesto versionado. A instalação usa
-o mecanismo oficial `--silent-install`; somente esse processo solicita elevação pelo
-UAC. Arquivos temporários ficam sob
+o mecanismo oficial `--silent-install`. Depois da redetecção, o configurador usa
+`--install-service` quando necessário, aguarda a criação do serviço por polling e
+garante o estado `Running` antes de chamar `--config`. A GUI solicita uma única
+elevação UAC ao iniciar; processos filhos administrativos herdam esse token e não
+abrem um segundo prompt. Arquivos temporários ficam sob
 `%TEMP%\Technolife\RustDeskConfigurator\<execução>\` e são removidos ao final.
 
 O fluxo é idempotente: se o RustDesk já estiver presente, `setup` não baixa nem
@@ -211,7 +218,12 @@ O diretório padrão de produção planejado para logs no Windows é:
 %ProgramData%\Technolife\RustDeskConfigurator\logs\
 ```
 
-O fluxo considera a configuração como `Applied` quando `--config` termina com exit code zero e o executável continua acessível. Isso não equivale a `Verified`: a documentação oficial consultada não documenta uma operação de leitura posterior de todos os campos, e o configurador não lê arquivos internos do RustDesk para simular essa confirmação.
+O fluxo considera a configuração `Applied` somente quando `--config` termina com exit
+code zero. Sucesso da GUI exige `Verified`: o serviço deve continuar `Running` e as
+opções `custom-rendezvous-server`, `relay-server` e `key`, relidas com
+`rustdesk.exe --option <nome>`, devem corresponder exatamente à configuração
+Technolife. Um exit code zero com qualquer valor divergente resulta em
+`ValidationFailed`; nenhum TOML é lido ou alterado diretamente.
 
 ### Códigos de saída
 
@@ -237,13 +249,19 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 
 ## Estado do projeto
 
-**Fase atual:** RD-007.1 concluída localmente; Beta 2 aguardando etapa própria de publicação.
+**Fase atual:** RD-007.2 concluída localmente; teste em máquina limpa pendente antes da Beta 2.
 
 A `v0.1.0-beta.1` comprovou o motor técnico, mas foi reprovada como artefato para cliente leigo porque o duplo clique sem argumentos apenas exibe ajuda e encerra. Ela permanece publicada somente como referência técnica.
 
-O fluxo corrigido foi testado pelo Explorer com RustDesk 1.4.9 já instalado: a GUI abriu sem terminal, iniciou automaticamente, não reinstalou o RustDesk, aplicou a configuração, validou o resultado e permaneceu na tela de sucesso até o clique em `Concluir`.
+O fluxo corrigido foi testado pelo Explorer com RustDesk 1.4.9 já instalado: a GUI
+abriu sem terminal, solicitou uma única confirmação UAC, garantiu o serviço em
+execução, aplicou a configuração administrativamente, releu as três opções e só então
+mostrou sucesso. O log registrou `Applied` seguido de `Verified`. Na inspeção posterior,
+o RustDesk mostrou estado `Pronto` e o controle de serviço mostrou `Parar`, confirmando
+que estava ativo. A área de rede permaneceu bloqueada e não foi desbloqueada nem
+alterada manualmente.
 
-O próximo artefato será a `v0.1.0-beta.2`, ainda não publicada. O cenário físico sem RustDesk será validado em uma máquina limpa antes dessa publicação; os caminhos de ausência, instalação e falhas permanecem cobertos por testes automatizados.
+O próximo artefato será a `v0.1.0-beta.2`, ainda não publicada. O cenário físico sem RustDesk será validado em uma máquina limpa antes dessa publicação; os caminhos de ausência, criação/início do serviço, instalação, validação divergente e falhas permanecem cobertos por testes automatizados.
 
 RD-008 (Linux Debian/Ubuntu) permanece bloqueada até a Beta 2 passar por teste em campo Windows.
 
@@ -266,7 +284,8 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | **—** | **MARCO — MOTOR WINDOWS HOMOLOGADO** | **Motor de detecção, instalação, configuração, validação e logs concluído** | **🟢 Concluído localmente** |
 | **—** | **CORREÇÃO UX WINDOWS** | **Adequar o executável ao uso por cliente leigo antes do teste em campo** | **🟢 Concluída localmente** |
 | RD-007.1 | Windows — experiência do cliente | Duplo clique executa setup automaticamente em GUI mínima, sem terminal ou parâmetros | 🟢 Concluída localmente |
-| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Distribuir v0.1.0-beta.2 em máquinas reais somente após concluir RD-007.1** | **⚪ Aguardando Beta 2** |
+| RD-007.2 | Windows — serviço e configuração | Garante serviço ativo, elevação única, configuração administrativa e validação real por `--option` | 🟢 Concluída localmente |
+| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Validar em Windows limpo e somente depois distribuir v0.1.0-beta.2** | **⚪ Aguardando teste limpo** |
 | **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejada** |
 | RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejada |
 | RD-009 | Linux — expansão | Adicionar outras distribuições e formatos conforme demanda real | ⚪ Futuro |

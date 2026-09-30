@@ -1,5 +1,6 @@
 using Technolife.RustDesk.Core.Enums;
 using Technolife.RustDesk.Core.Models;
+using Technolife.RustDesk.Platforms.Abstractions;
 using Technolife.RustDesk.Platforms.Processes;
 
 namespace Technolife.RustDesk.Tests.Platforms.Processes;
@@ -58,5 +59,28 @@ public sealed class SystemProcessRunnerTests
         Assert.Null(result.Value);
         Assert.Equal(ErrorCode.ProcessFailed, result.ErrorCode);
         Assert.Contains("timed out", result.TechnicalDetails);
+    }
+
+    [Fact]
+    public async Task CapturesOutputWithoutAnotherUacWhenCurrentProcessIsAlreadyElevated()
+    {
+        var runner = new SystemProcessRunner(new FakeElevationContext(isElevated: true));
+        var request = new ProcessRequest(
+            "dotnet",
+            ["--version"],
+            timeout: TimeSpan.FromSeconds(30),
+            requiresElevation: true);
+
+        var result = await runner.RunAsync(request);
+
+        var processResult = Assert.IsType<ProcessResult>(result.Value);
+        Assert.True(result.Success);
+        Assert.Equal(0, processResult.ExitCode);
+        Assert.False(string.IsNullOrWhiteSpace(processResult.StandardOutput));
+    }
+
+    private sealed class FakeElevationContext(bool isElevated) : IProcessElevationContext
+    {
+        public bool IsCurrentProcessElevated { get; } = isElevated;
     }
 }

@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Technolife.RustDesk.Core;
 using Technolife.RustDesk.Core.Enums;
 using Technolife.RustDesk.Core.Models;
@@ -46,7 +47,8 @@ public static class CliApplication
 
         var platformEnvironment = new PlatformInformationProvider();
 
-        if (platformEnvironment.Current.Kind is not PlatformKind.Windows)
+        if (!OperatingSystem.IsWindows() ||
+            platformEnvironment.Current.Kind is not PlatformKind.Windows)
         {
             output.WriteLine("[ERRO] Esta operação é suportada somente no Windows nesta versão.");
             return (int)CliExitCode.UnsupportedPlatform;
@@ -132,6 +134,7 @@ public static class CliApplication
         return (int)CliExitCode.Success;
     }
 
+    [SupportedOSPlatform("windows")]
     private static async Task<int> RunConfigureAsync(
         WindowsRustDeskDetector detector,
         PlatformInformationProvider platformEnvironment,
@@ -144,10 +147,19 @@ public static class CliApplication
         var logger = new FileAppLogger(
             logDirectory,
             [configuration.ExportedConfiguration]);
+        var processRunner = new SystemProcessRunner();
+        var serviceManager = new WindowsRustDeskServiceManager(
+            processRunner,
+            new SystemWindowsServiceController(),
+            logger);
         var workflow = new RustDeskConfigurationWorkflow(
             detector,
-            new WindowsRustDeskConfigurator(),
-            new WindowsRustDeskValidator(),
+            serviceManager,
+            new WindowsRustDeskConfigurator(processRunner),
+            new WindowsRustDeskValidator(
+                new SystemFileProbe(),
+                serviceManager,
+                new WindowsRustDeskOptionReader(processRunner)),
             platformEnvironment,
             logger);
 
@@ -159,6 +171,7 @@ public static class CliApplication
         return (int)CliExitCodeMapper.FromErrorCode(result.ErrorCode);
     }
 
+    [SupportedOSPlatform("windows")]
     private static async Task<int> RunSetupAsync(
         PlatformInformationProvider platformEnvironment,
         CliOptions options,
@@ -174,10 +187,19 @@ public static class CliApplication
             new SystemFileProbe(),
             platformEnvironment,
             WindowsRustDeskPaths.FromCurrentEnvironment());
+        var processRunner = new SystemProcessRunner();
+        var serviceManager = new WindowsRustDeskServiceManager(
+            processRunner,
+            new SystemWindowsServiceController(),
+            logger);
         var configurationWorkflow = new RustDeskConfigurationWorkflow(
             detector,
-            new WindowsRustDeskConfigurator(),
-            new WindowsRustDeskValidator(),
+            serviceManager,
+            new WindowsRustDeskConfigurator(processRunner),
+            new WindowsRustDeskValidator(
+                new SystemFileProbe(),
+                serviceManager,
+                new WindowsRustDeskOptionReader(processRunner)),
             platformEnvironment,
             logger);
 
@@ -186,7 +208,7 @@ public static class CliApplication
             WindowsRustDeskPackageManifest.Create(),
             downloadClient,
             new Sha256FileIntegrityValidator(),
-            new SystemProcessRunner(),
+            processRunner,
             platformEnvironment,
             new SystemInstallerFileSystem(),
             logger,

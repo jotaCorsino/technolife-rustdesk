@@ -9,6 +9,7 @@ public sealed class RustDeskConfigurationWorkflow
     private const string RedactedValue = "[REDACTED]";
 
     private readonly IRustDeskDetector _detector;
+    private readonly IRustDeskServiceManager _serviceManager;
     private readonly IRustDeskConfigurator _configurator;
     private readonly IRustDeskValidator _validator;
     private readonly IPlatformEnvironment _platformEnvironment;
@@ -16,18 +17,21 @@ public sealed class RustDeskConfigurationWorkflow
 
     public RustDeskConfigurationWorkflow(
         IRustDeskDetector detector,
+        IRustDeskServiceManager serviceManager,
         IRustDeskConfigurator configurator,
         IRustDeskValidator validator,
         IPlatformEnvironment platformEnvironment,
         IAppLogger logger)
     {
         ArgumentNullException.ThrowIfNull(detector);
+        ArgumentNullException.ThrowIfNull(serviceManager);
         ArgumentNullException.ThrowIfNull(configurator);
         ArgumentNullException.ThrowIfNull(validator);
         ArgumentNullException.ThrowIfNull(platformEnvironment);
         ArgumentNullException.ThrowIfNull(logger);
 
         _detector = detector;
+        _serviceManager = serviceManager;
         _configurator = configurator;
         _validator = validator;
         _platformEnvironment = platformEnvironment;
@@ -145,6 +149,37 @@ public sealed class RustDeskConfigurationWorkflow
         _logger.Info(
             $"RustDesk {installation.Version?.ToString() ?? "unknown version"} found at " +
             $"{installation.ExecutablePath}.");
+        _logger.Info("RustDesk service activation started.");
+        progress?.Report(new SetupProgress(SetupProgressStage.StartingService));
+
+        var serviceInstallationResult = await _serviceManager
+            .EnsureInstalledAsync(installation, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!serviceInstallationResult.Success)
+        {
+            return CreateFailure(
+                serviceInstallationResult.ErrorCode,
+                "RustDesk service installation failed.",
+                serviceInstallationResult.TechnicalDetails ??
+                    serviceInstallationResult.Message,
+                configuration);
+        }
+
+        var serviceStartResult = await _serviceManager
+            .EnsureRunningAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!serviceStartResult.Success)
+        {
+            return CreateFailure(
+                serviceStartResult.ErrorCode,
+                "RustDesk service could not be started.",
+                serviceStartResult.TechnicalDetails ?? serviceStartResult.Message,
+                configuration);
+        }
+
+        _logger.Info("RustDesk service is running.");
         _logger.Info("Configuration started.");
         progress?.Report(new SetupProgress(SetupProgressStage.Configuring));
 
@@ -161,9 +196,9 @@ public sealed class RustDeskConfigurationWorkflow
                 configuration);
         }
 
-        _logger.Info("Configuration process completed with exit code 0.");
-        _logger.Info("Validation started.");
-        progress?.Report(new SetupProgress(SetupProgressStage.Validating));
+        _logger.Info("Configuration process completed with exit code 0 (Applied).");
+        _logger.Info("Independent configuration verification started.");
+        progress?.Report(new SetupProgress(SetupProgressStage.Verifying));
 
         var validationResult = await _validator
             .ValidateAsync(installation, configuration, cancellationToken)
@@ -177,6 +212,15 @@ public sealed class RustDeskConfigurationWorkflow
                     : validationResult.ErrorCode,
                 "RustDesk validation failed.",
                 validationResult.TechnicalDetails ?? validationResult.Message,
+                configuration);
+        }
+
+        if (validationResult.Value.Status is not RustDeskValidationStatus.Verified)
+        {
+            return CreateFailure(
+                ErrorCode.ValidationFailed,
+                "RustDesk validation did not verify the expected configuration.",
+                $"Validator returned status {validationResult.Value.Status}.",
                 configuration);
         }
 

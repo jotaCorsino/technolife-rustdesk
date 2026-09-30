@@ -14,7 +14,13 @@ public sealed class RustDeskSetupWorkflowTests
         var installer = new FakeInstaller();
         var configurator = new FakeConfigurator();
         var validator = new FakeValidator();
-        var workflow = CreateWorkflow(detector, installer, configurator, validator);
+        var serviceManager = new FakeServiceManager();
+        var workflow = CreateWorkflow(
+            detector,
+            installer,
+            configurator,
+            validator,
+            serviceManager: serviceManager);
 
         var result = await workflow.ExecuteAsync(Configuration());
 
@@ -22,6 +28,8 @@ public sealed class RustDeskSetupWorkflowTests
         Assert.True(result.Success);
         Assert.False(value.InstallationPerformed);
         Assert.Equal(0, installer.CallCount);
+        Assert.Equal(1, serviceManager.EnsureInstalledCallCount);
+        Assert.Equal(1, serviceManager.EnsureRunningCallCount);
         Assert.Equal(1, configurator.CallCount);
         Assert.Equal(1, validator.CallCount);
     }
@@ -44,8 +52,9 @@ public sealed class RustDeskSetupWorkflowTests
         Assert.Equal(
             [
                 SetupProgressStage.Checking,
+                SetupProgressStage.StartingService,
                 SetupProgressStage.Configuring,
-                SetupProgressStage.Validating,
+                SetupProgressStage.Verifying,
                 SetupProgressStage.Completed
             ],
             progress.Stages);
@@ -58,7 +67,13 @@ public sealed class RustDeskSetupWorkflowTests
         var installer = new FakeInstaller();
         var configurator = new FakeConfigurator();
         var validator = new FakeValidator();
-        var workflow = CreateWorkflow(detector, installer, configurator, validator);
+        var serviceManager = new FakeServiceManager();
+        var workflow = CreateWorkflow(
+            detector,
+            installer,
+            configurator,
+            validator,
+            serviceManager: serviceManager);
 
         var result = await workflow.ExecuteAsync(Configuration());
 
@@ -67,6 +82,8 @@ public sealed class RustDeskSetupWorkflowTests
         Assert.True(value.InstallationPerformed);
         Assert.Equal(2, detector.CallCount);
         Assert.Equal(1, installer.CallCount);
+        Assert.Equal(1, serviceManager.EnsureInstalledCallCount);
+        Assert.Equal(1, serviceManager.EnsureRunningCallCount);
         Assert.Equal(1, configurator.CallCount);
         Assert.Equal(1, validator.CallCount);
     }
@@ -90,8 +107,9 @@ public sealed class RustDeskSetupWorkflowTests
                 SetupProgressStage.Downloading,
                 SetupProgressStage.Installing,
                 SetupProgressStage.Checking,
+                SetupProgressStage.StartingService,
                 SetupProgressStage.Configuring,
-                SetupProgressStage.Validating,
+                SetupProgressStage.Verifying,
                 SetupProgressStage.Completed
             ],
             progress.Stages);
@@ -191,12 +209,14 @@ public sealed class RustDeskSetupWorkflowTests
         IRustDeskInstaller installer,
         IRustDeskConfigurator configurator,
         IRustDeskValidator validator,
-        int redetectionAttempts = 2)
+        int redetectionAttempts = 2,
+        IRustDeskServiceManager? serviceManager = null)
     {
         var platform = new StubPlatformEnvironment();
         var logger = new InMemoryLogger();
         var configurationWorkflow = new RustDeskConfigurationWorkflow(
             detector,
+            serviceManager ?? new FakeServiceManager(),
             configurator,
             validator,
             platform,
@@ -292,9 +312,38 @@ public sealed class RustDeskSetupWorkflowTests
             return Task.FromResult(
                 OperationResult<RustDeskValidation>.Succeeded(
                     new RustDeskValidation(
-                        RustDeskValidationStatus.Applied,
-                        "Process completed."),
+                        RustDeskValidationStatus.Verified,
+                        "Service and options matched."),
                     "Validated."));
+        }
+    }
+
+    private sealed class FakeServiceManager : IRustDeskServiceManager
+    {
+        public int EnsureInstalledCallCount { get; private set; }
+
+        public int EnsureRunningCallCount { get; private set; }
+
+        public Task<OperationResult<RustDeskServiceStatus>> GetStatusAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(
+                OperationResult<RustDeskServiceStatus>.Succeeded(
+                    RustDeskServiceStatus.Running,
+                    "Running."));
+
+        public Task<OperationResult> EnsureInstalledAsync(
+            RustDeskInstallation installation,
+            CancellationToken cancellationToken = default)
+        {
+            EnsureInstalledCallCount++;
+            return Task.FromResult(OperationResult.Succeeded("Installed."));
+        }
+
+        public Task<OperationResult> EnsureRunningAsync(
+            CancellationToken cancellationToken = default)
+        {
+            EnsureRunningCallCount++;
+            return Task.FromResult(OperationResult.Succeeded("Running."));
         }
     }
 

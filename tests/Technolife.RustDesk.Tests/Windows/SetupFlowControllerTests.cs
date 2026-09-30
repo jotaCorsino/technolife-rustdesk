@@ -70,6 +70,20 @@ public sealed class SetupFlowControllerTests
         Assert.DoesNotContain(SensitiveConfiguration, visibleText);
     }
 
+    [Fact]
+    public async Task ShowsFriendlyServiceAndVerificationProgress()
+    {
+        var controller = new SetupFlowController(new StageReportingRunner());
+        var statusTexts = new List<string>();
+        controller.StateChanged += state => statusTexts.Add(state.StatusText);
+
+        await controller.StartAutomaticallyAsync();
+
+        Assert.Contains("Ativando acesso remoto...", statusTexts);
+        Assert.Contains("Validando configuração...", statusTexts);
+        Assert.Equal(SetupUiStatus.Completed, controller.State.Status);
+    }
+
     private static OperationResult<RustDeskSetupWorkflowResult> Success()
     {
         var installation = RustDeskInstallation.CreateFound(
@@ -112,6 +126,18 @@ public sealed class SetupFlowControllerTests
             CallCount++;
             progress.Report(new SetupProgress(SetupProgressStage.Checking));
             return Task.FromResult(_results.Dequeue());
+        }
+    }
+
+    private sealed class StageReportingRunner : ISetupWorkflowRunner
+    {
+        public Task<OperationResult<RustDeskSetupWorkflowResult>> RunAsync(
+            IProgress<SetupProgress> progress,
+            CancellationToken cancellationToken = default)
+        {
+            progress.Report(new SetupProgress(SetupProgressStage.StartingService));
+            progress.Report(new SetupProgress(SetupProgressStage.Verifying));
+            return Task.FromResult(Success());
         }
     }
 }

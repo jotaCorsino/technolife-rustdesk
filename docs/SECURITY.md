@@ -49,12 +49,23 @@ Ele deve:
 - detectar quando elevação é necessária;
 - solicitar apenas quando a operação exigir;
 - informar claramente falhas de permissão;
-- evitar executar toda a aplicação elevada quando uma operação pontual for suficiente.
+- evitar prompts repetidos no mesmo fluxo administrativo.
 
-No Windows, somente o instalador homologado é iniciado com o verbo `runas`. O Windows
-exibe e controla o consentimento UAC; recusa ou falha retorna um erro estruturado. A
-detecção, o download, a validação de integridade, a configuração e a validação
-pós-configuração não solicitam elevação por essa política.
+No Windows, a GUI de cliente se relança uma única vez com o verbo `runas` antes de
+exibir o fluxo principal. Isso permite que instalação, `--install-service`, ativação
+do serviço, `--config` e leitura posterior por `--option` sejam executadas com o token
+administrativo já consentido, sem novos prompts. O Windows exibe e controla o UAC;
+recusa ou falha retorna um erro amigável e estruturado. A GUI não tenta clicar nem
+contornar essa tela.
+
+A CLI técnica continua elevando apenas processos que declaram essa necessidade. O
+`SystemProcessRunner` consulta `IProcessElevationContext`: usa `runas` quando o
+processo atual não está elevado e executa o filho diretamente quando o token atual já
+é administrativo. Chamadas a `WindowsIdentity` ficam centralizadas nessa abstração.
+
+O configurador não usa `--password`, não define senha permanente e não registra a
+string exportada nem os valores relidos. A chave do servidor é pública, mas continua
+omitida dos logs operacionais.
 
 ## Processos externos
 

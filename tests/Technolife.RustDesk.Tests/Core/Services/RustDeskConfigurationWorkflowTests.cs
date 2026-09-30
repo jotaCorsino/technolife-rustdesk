@@ -65,13 +65,62 @@ public sealed class RustDeskConfigurationWorkflowTests
 
         var workflowResult = Assert.IsType<RustDeskConfigurationWorkflowResult>(result.Value);
         Assert.True(result.Success);
-        Assert.Equal(RustDeskValidationStatus.Applied, workflowResult.Validation.Status);
+        Assert.Equal(RustDeskValidationStatus.Verified, workflowResult.Validation.Status);
         Assert.Equal(1, detector.CallCount);
         Assert.Equal(1, configurator.CallCount);
         Assert.Equal(1, validator.CallCount);
         Assert.Contains(logger.Entries, entry => entry.Contains("Detection started."));
         Assert.Contains(logger.Entries, entry => entry.Contains("exit code 0"));
-        Assert.Contains(logger.Entries, entry => entry.Contains("Validation result: Applied"));
+        Assert.Contains(logger.Entries, entry => entry.Contains("Validation result: Verified"));
+    }
+
+    [Fact]
+    public async Task StopsBeforeConfigurationWhenServiceCannotStart()
+    {
+        var serviceManager = new FakeServiceManager
+        {
+            EnsureRunningResult = OperationResult.Failed(
+                ErrorCode.InstallationFailed,
+                "Service did not start.")
+        };
+        var configurator = new FakeConfigurator();
+        var validator = new FakeValidator();
+        var workflow = CreateWorkflow(
+            new FakeDetector(),
+            configurator,
+            validator,
+            serviceManager: serviceManager);
+
+        var result = await workflow.ExecuteAsync(CreateConfiguration());
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.InstallationFailed, result.ErrorCode);
+        Assert.Equal(1, serviceManager.EnsureInstalledCallCount);
+        Assert.Equal(1, serviceManager.EnsureRunningCallCount);
+        Assert.Equal(0, configurator.CallCount);
+        Assert.Equal(0, validator.CallCount);
+    }
+
+    [Fact]
+    public async Task RejectsAppliedStatusWithoutIndependentVerification()
+    {
+        var validator = new FakeValidator
+        {
+            Result = OperationResult<RustDeskValidation>.Succeeded(
+                new RustDeskValidation(
+                    RustDeskValidationStatus.Applied,
+                    "Only the command exit code was checked."),
+                "Applied only.")
+        };
+        var workflow = CreateWorkflow(
+            new FakeDetector(),
+            new FakeConfigurator(),
+            validator);
+
+        var result = await workflow.ExecuteAsync(CreateConfiguration());
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.ValidationFailed, result.ErrorCode);
     }
 
     [Fact]
@@ -173,9 +222,11 @@ public sealed class RustDeskConfigurationWorkflowTests
         IRustDeskDetector detector,
         IRustDeskConfigurator configurator,
         IRustDeskValidator validator,
-        IAppLogger? logger = null) =>
+        IAppLogger? logger = null,
+        IRustDeskServiceManager? serviceManager = null) =>
         new(
             detector,
+            serviceManager ?? new FakeServiceManager(),
             configurator,
             validator,
             new StubPlatformEnvironment(),
@@ -244,9 +295,9 @@ public sealed class RustDeskConfigurationWorkflowTests
         public OperationResult<RustDeskValidation> Result { get; init; } =
             OperationResult<RustDeskValidation>.Succeeded(
                 new RustDeskValidation(
-                    RustDeskValidationStatus.Applied,
-                    "Application completed; fields were not read back."),
-                "Applied.");
+                    RustDeskValidationStatus.Verified,
+                    "Service and fields were independently verified."),
+                "Verified.");
 
         public int CallCount { get; private set; }
 
@@ -257,6 +308,41 @@ public sealed class RustDeskConfigurationWorkflowTests
         {
             CallCount++;
             return Task.FromResult(Result);
+        }
+    }
+
+    private sealed class FakeServiceManager : IRustDeskServiceManager
+    {
+        public OperationResult EnsureInstalledResult { get; init; } =
+            OperationResult.Succeeded("Installed.");
+
+        public OperationResult EnsureRunningResult { get; init; } =
+            OperationResult.Succeeded("Running.");
+
+        public int EnsureInstalledCallCount { get; private set; }
+
+        public int EnsureRunningCallCount { get; private set; }
+
+        public Task<OperationResult<RustDeskServiceStatus>> GetStatusAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(
+                OperationResult<RustDeskServiceStatus>.Succeeded(
+                    RustDeskServiceStatus.Running,
+                    "Running."));
+
+        public Task<OperationResult> EnsureInstalledAsync(
+            RustDeskInstallation installation,
+            CancellationToken cancellationToken = default)
+        {
+            EnsureInstalledCallCount++;
+            return Task.FromResult(EnsureInstalledResult);
+        }
+
+        public Task<OperationResult> EnsureRunningAsync(
+            CancellationToken cancellationToken = default)
+        {
+            EnsureRunningCallCount++;
+            return Task.FromResult(EnsureRunningResult);
         }
     }
 
