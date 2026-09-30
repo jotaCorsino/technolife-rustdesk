@@ -163,9 +163,9 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 ## Estado do projeto
 
-**Fase atual:** RD-003 (detector Windows) concluída.
+**Fase atual:** RD-004 (aplicação da configuração no Windows) concluída.
 
-Próximo passo planejado: RD-004, aplicação da configuração.
+Próximo passo planejado: RD-005, validação do fluxo, mensagens e logs.
 
 Ainda não há build de produção homologado.
 
@@ -181,8 +181,8 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | 🟢 Concluído |
 | **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **🟡 Atual** |
 | RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | 🟢 Concluído |
-| RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | 🟡 Próxima etapa |
-| RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | ⚪ Planejado |
+| RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | 🟢 Concluído |
+| RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | 🟡 Próxima etapa |
 | RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | ⚪ Planejado |
 | RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
 | **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **⚪ Planejado** |

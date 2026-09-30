@@ -116,6 +116,12 @@ rustdesk.exe --config "<CONFIG_STRING>"
 
 A implementação deve passar argumentos por API adequada de processos, evitando construir uma única string de shell sempre que possível.
 
+Na implementação Windows, `WindowsRustDeskConfigurator` recebe a instalação detectada e a configuração de runtime, valida as pré-condições e delega a execução a `IProcessRunner`. A fonte de runtime `TechnolifeRustDeskConfiguration` concentra os valores públicos usados pelo cliente sem introduzir senhas, tokens ou chaves privadas.
+
+`SystemProcessRunner` chama diretamente o executável com `ProcessStartInfo.ArgumentList`, captura `stdout`, `stderr` e exit code, respeita timeout e converte falhas de inicialização em resultados estruturados. Os argumentos permanecem separados e sua representação textual é redigida; a configuração exportada não é propagada em mensagens ou detalhes técnicos do configurador.
+
+Esse fluxo segue o mecanismo `--config` descrito na [documentação oficial de configuração do cliente RustDesk](https://rustdesk.com/docs/en/self-host/client-configuration/). A RD-004 interpreta a conclusão do processo e seu exit code, mas a validação funcional pós-configuração e o logging completo pertencem à RD-005.
+
 ## Instalação
 
 A instalação e a configuração são responsabilidades diferentes.

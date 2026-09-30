@@ -11,7 +11,7 @@ public sealed class RustDeskConfiguration
         ArgumentException.ThrowIfNullOrWhiteSpace(idServer);
         ArgumentException.ThrowIfNullOrWhiteSpace(relayServer);
         ArgumentException.ThrowIfNullOrWhiteSpace(publicKey);
-        ArgumentException.ThrowIfNullOrWhiteSpace(exportedConfiguration);
+        ArgumentNullException.ThrowIfNull(exportedConfiguration);
 
         IdServer = idServer;
         RelayServer = relayServer;

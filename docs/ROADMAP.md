@@ -66,6 +66,8 @@ Não instalar nada nesta tarefa.
 
 ### RD-004 — Aplicação da configuração
 
+**Status: concluída.**
+
 Objetivo: aplicar a configuração Technolife em RustDesk já instalado.
 
 Método prioritário:
@@ -80,6 +82,8 @@ Entregas:
 - captura de resultado;
 - tratamento de erros;
 - testes com process runner simulado.
+
+Implementação concluída com chamada direta ao executável, argumentos separados por `ProcessStartInfo.ArgumentList`, timeout, captura de saída e proteção da configuração exportada em mensagens e representações textuais.
 
 ### RD-005 — Validação e logs
 

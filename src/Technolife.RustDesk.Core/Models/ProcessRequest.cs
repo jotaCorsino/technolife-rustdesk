@@ -36,4 +36,8 @@ public sealed class ProcessRequest
     public string? WorkingDirectory { get; }
 
     public TimeSpan? Timeout { get; }
+
+    public override string ToString() =>
+        $"Process request for '{Path.GetFileName(Executable)}' " +
+        $"with {Arguments.Count} argument(s); argument values are redacted.";
 }

@@ -38,4 +38,19 @@ public sealed class ProcessModelsTests
         Assert.Equal("standard output", result.StandardOutput);
         Assert.Equal("standard error", result.StandardError);
     }
+
+    [Fact]
+    public void RedactsArgumentsFromTextRepresentation()
+    {
+        const string sensitiveArgument = "sensitive-exported-configuration";
+        var request = new ProcessRequest(
+            "rustdesk.exe",
+            ["--config", sensitiveArgument]);
+
+        var text = request.ToString();
+
+        Assert.DoesNotContain(sensitiveArgument, text);
+        Assert.DoesNotContain("--config", text);
+        Assert.Contains("2 argument(s)", text);
+    }
 }
