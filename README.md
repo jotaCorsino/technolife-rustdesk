@@ -30,7 +30,7 @@ rustdesk --config "<CONFIG_STRING>"
 
 | Plataforma | Arquitetura | Status |
 |---|---|---|
-| Windows 10/11 | x64 | Planejado para a primeira implementação |
+| Windows 10/11 | x64 | Build homologado localmente |
 | Linux Debian/Ubuntu | x64 | Planejado |
 | macOS | Intel x64 | Planejado |
 | macOS | Apple Silicon arm64 | Planejado |
@@ -40,11 +40,12 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-Esta seção será atualizada quando os primeiros builds forem homologados.
+A primeira build Windows foi homologada localmente. Links públicos serão adicionados
+somente quando houver uma GitHub Release aprovada.
 
 | Sistema | Build | Status | Download |
 |---|---|---|---|
-| Windows x64 | `Technolife-RustDesk-Windows.exe` | Em desenvolvimento | — |
+| Windows x64 | `Technolife-RustDesk-Windows.exe` | Build homologado localmente | — |
 | Linux x64 | `technolife-rustdesk-linux` | Planejado | — |
 | macOS Intel | `Technolife-RustDesk-macOS-x64` | Planejado | — |
 | macOS Apple Silicon | `Technolife-RustDesk-macOS-arm64` | Planejado | — |
@@ -230,11 +231,11 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 
 ## Estado do projeto
 
-**Fase atual:** RD-006 (instalação automática homologada no Windows) concluída.
+**Fase atual:** fase Windows x64 concluída e homologada localmente.
 
-Próximo passo planejado: RD-007, publicação e homologação do executável Windows x64.
+Próximo passo planejado: RD-008, suporte inicial a Linux Debian/Ubuntu x64.
 
-Ainda não há build de produção homologado.
+O build Windows ainda não possui release pública nem assinatura Authenticode.
 
 
 ## Acompanhamento do projeto
@@ -246,15 +247,15 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | **—** | **FASE 0 — FUNDAÇÃO MULTIPLATAFORMA** | **Base comum que será reutilizada por Windows, Linux e macOS** | **🟢 Concluída** |
 | RD-001 | Fundação | Criar a solution .NET 8, projetos Core, CLI, Platforms e Tests, referências e build inicial | 🟢 Concluído |
 | RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | 🟢 Concluído |
-| **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **🟡 Atual** |
+| **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **🟢 Concluída** |
 | RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | 🟢 Concluído |
 | RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | 🟢 Concluído |
 | RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | 🟢 Concluído |
 | RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟢 Concluído |
-| RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
-| **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **⚪ Planejado** |
-| **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejado** |
-| RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejado |
+| RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | 🟢 Concluído |
+| **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **🟢 Concluído localmente** |
+| **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **🟡 Próxima** |
+| RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | 🟡 Próxima etapa |
 | RD-009 | Linux — expansão | Adicionar outras distribuições e formatos conforme demanda real | ⚪ Futuro |
 | **—** | **MARCO — LINUX HOMOLOGADO** | **Disponibilizar build Linux suportado oficialmente pelo projeto** | **⚪ Planejado** |
 | **—** | **FASE 3 — macOS** | **Adaptar o Core ao macOS e tratar permissões específicas do sistema** | **⚪ Planejado** |

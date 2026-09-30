@@ -126,6 +126,8 @@ presente e aceita `--installer-path` somente para testes locais controlados.
 
 ### RD-007 — Publicação Windows
 
+**Status: concluída localmente.**
+
 Objetivo: gerar primeiro artefato utilizável.
 
 Entregas:
@@ -135,6 +137,17 @@ Entregas:
 - instrução de uso;
 - checklist manual;
 - release candidata.
+
+Implementação concluída com publicação `Release` para `win-x64`, self-contained e
+single-file, sem trimming ou ReadyToRun. O script `scripts/publish-windows.ps1`
+executa restore, build, testes, publish, padroniza o nome
+`Technolife-RustDesk-Windows.exe` e gera seu SHA-256.
+
+O executável publicado foi validado localmente com ajuda, `--version`, `status`,
+`configure` e `setup`; o último confirmou que uma instalação existente não é baixada
+nem reinstalada. O artefato permanece fora do Git e ainda não possui assinatura
+Authenticode ou release pública. Como Windows Sandbox não está instalado na máquina
+de desenvolvimento, o teste em um Windows limpo permanece pendente.
 
 ## Fase 2 — Linux
 

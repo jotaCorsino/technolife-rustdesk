@@ -38,6 +38,18 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task VersionOptionOnlyShowsApplicationVersion()
+    {
+        using var output = new StringWriter();
+
+        var exitCode = await CliApplication.RunAsync(["--version"], output);
+
+        Assert.Equal((int)CliExitCode.Success, exitCode);
+        Assert.Contains("Versão: 0.1.0-dev", output.ToString());
+        Assert.DoesNotContain("Uso:", output.ToString());
+    }
+
+    [Fact]
     public void FailureOutputDoesNotExposeResultDetails()
     {
         using var output = new StringWriter();

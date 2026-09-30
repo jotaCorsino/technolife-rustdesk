@@ -31,6 +31,11 @@ public static class CliApplication
             return (int)CliExitCode.Success;
         }
 
+        if (arguments.Length is 1 && IsVersionCommand(arguments[0]))
+        {
+            return (int)CliExitCode.Success;
+        }
+
         if (!TryParse(arguments, out var options, out var parseError))
         {
             output.WriteLine($"[ERRO] {parseError}");
@@ -426,6 +431,9 @@ public static class CliApplication
     private static bool IsHelpCommand(string value) =>
         value is "help" or "--help" or "-h";
 
+    private static bool IsVersionCommand(string value) =>
+        value is "--version" or "-v";
+
     private static string FormatVersion(Version? version) =>
         version?.ToString() ?? "versão desconhecida";
 
@@ -439,6 +447,7 @@ public static class CliApplication
     private static void WriteUsage(TextWriter output)
     {
         output.WriteLine("Uso:");
+        output.WriteLine("  technolife-rustdesk --version");
         output.WriteLine("  technolife-rustdesk status [--rustdesk-path <caminho>]");
         output.WriteLine(
             "  technolife-rustdesk configure [--rustdesk-path <caminho>] " +

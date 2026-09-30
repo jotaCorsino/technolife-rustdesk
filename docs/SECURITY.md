@@ -86,6 +86,10 @@ Futuro:
 - assinatura/notarização para macOS;
 - checksums publicados nas releases.
 
+O primeiro build Windows x64 homologado localmente ainda não é assinado. Por isso,
+o Windows pode exibir um aviso do SmartScreen. A RD-007 não desabilita nem contorna
+essa proteção e não utiliza certificado autoassinado como substituto de confiança.
+
 ## Mudanças de infraestrutura
 
 Se a chave pública ou endpoints mudarem:
