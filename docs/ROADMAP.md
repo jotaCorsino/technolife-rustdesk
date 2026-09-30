@@ -126,7 +126,7 @@ presente e aceita `--installer-path` somente para testes locais controlados.
 
 ### RD-007 — Publicação Windows
 
-**Status: concluída localmente.**
+**Status: concluída.**
 
 Objetivo: gerar primeiro artefato utilizável.
 
@@ -146,12 +146,24 @@ executa restore, build, testes, publish, padroniza o nome
 O executável publicado foi validado localmente com ajuda, `--version`, `status`,
 `configure` e `setup`; o último confirmou que uma instalação existente não é baixada
 nem reinstalada. O artefato permanece fora do Git e ainda não possui assinatura
-Authenticode ou release pública. Como Windows Sandbox não está instalado na máquina
-de desenvolvimento, o teste em um Windows limpo permanece pendente.
+Authenticode. A pre-release pública `v0.1.0-beta.1` disponibiliza o executável e seu
+checksum para testes em campo. Como Windows Sandbox não está instalado na máquina de
+desenvolvimento, o teste em um Windows limpo permanece pendente.
+
+## FASE — TESTES EM CAMPO WINDOWS
+
+**Status: 🟡 Em andamento.**
+
+Objetivo: distribuir `v0.1.0-beta.1` em máquinas reais de clientes e registrar
+problemas antes da expansão multiplataforma.
+
+A RD-008 continua planejada e não foi iniciada.
 
 ## Fase 2 — Linux
 
 ### RD-008 — Linux Debian/Ubuntu
+
+**Status: planejada.**
 
 Objetivo: reutilizar o Core no primeiro alvo Linux.
 

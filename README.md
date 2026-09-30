@@ -40,17 +40,16 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-A primeira build Windows foi homologada localmente. Links públicos serão adicionados
-somente quando houver uma GitHub Release aprovada.
+A versão Windows está atualmente em fase de testes em campo.
 
-| Sistema | Build | Status | Download |
+| Sistema | Versão | Status | Download |
 |---|---|---|---|
-| Windows x64 | `Technolife-RustDesk-Windows.exe` | Build homologado localmente | — |
-| Linux x64 | `technolife-rustdesk-linux` | Planejado | — |
-| macOS Intel | `Technolife-RustDesk-macOS-x64` | Planejado | — |
-| macOS Apple Silicon | `Technolife-RustDesk-macOS-arm64` | Planejado | — |
+| Windows 10/11 x64 | `v0.1.0-beta.1` | 🧪 Beta — teste em campo | [Baixar EXE](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.1/Technolife-RustDesk-Windows.exe) · [SHA-256](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.1/Technolife-RustDesk-Windows.exe.sha256) · [GitHub Release](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
+| Linux x64 | — | ⚪ Planejado | — |
+| macOS Intel | — | ⚪ Planejado | — |
+| macOS Apple Silicon | — | ⚪ Planejado | — |
 
-Quando existirem releases publicados, os links oficiais deverão apontar para a área **Releases** deste repositório.
+Os links oficiais apontam para a pre-release publicada na área **Releases** deste repositório.
 
 ## Infraestrutura RustDesk da Technolife
 
@@ -231,11 +230,15 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 
 ## Estado do projeto
 
-**Fase atual:** fase Windows x64 concluída e homologada localmente.
+**Fase atual:** testes em campo da Beta Windows x64.
 
-Próximo passo planejado: RD-008, suporte inicial a Linux Debian/Ubuntu x64.
+O objetivo atual é distribuir a `v0.1.0-beta.1` em máquinas reais de clientes e
+registrar problemas antes da expansão multiplataforma.
 
-O build Windows ainda não possui release pública nem assinatura Authenticode.
+Próximo passo planejado, ainda não iniciado: RD-008, suporte inicial a Linux
+Debian/Ubuntu x64.
+
+A Beta Windows possui pre-release pública, mas ainda não possui assinatura Authenticode.
 
 
 ## Acompanhamento do projeto
@@ -254,8 +257,9 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟢 Concluído |
 | RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | 🟢 Concluído |
 | **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **🟢 Concluído localmente** |
-| **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **🟡 Próxima** |
-| RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | 🟡 Próxima etapa |
+| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Distribuir v0.1.0-beta.1 em máquinas reais de clientes e registrar problemas antes da expansão multiplataforma** | **🟡 Em andamento** |
+| **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejada** |
+| RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejada |
 | RD-009 | Linux — expansão | Adicionar outras distribuições e formatos conforme demanda real | ⚪ Futuro |
 | **—** | **MARCO — LINUX HOMOLOGADO** | **Disponibilizar build Linux suportado oficialmente pelo projeto** | **⚪ Planejado** |
 | **—** | **FASE 3 — macOS** | **Adaptar o Core ao macOS e tratar permissões específicas do sistema** | **⚪ Planejado** |
