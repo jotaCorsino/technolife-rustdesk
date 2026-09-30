@@ -1,29 +1,39 @@
 using System.Runtime.InteropServices;
+using Technolife.RustDesk.Core.Abstractions;
+using Technolife.RustDesk.Core.Enums;
+using Technolife.RustDesk.Core.Models;
 
 namespace Technolife.RustDesk.Platforms;
 
-public static class PlatformInformationProvider
+public sealed class PlatformInformationProvider : IPlatformEnvironment
 {
-    public static PlatformInformation GetCurrent() =>
-        new(GetOperatingSystemName(), RuntimeInformation.OSArchitecture);
+    public PlatformInfo Current => new(GetPlatformKind(), GetCpuArchitecture());
 
-    private static string GetOperatingSystemName()
+    private static PlatformKind GetPlatformKind()
     {
         if (OperatingSystem.IsWindows())
         {
-            return "Windows";
+            return PlatformKind.Windows;
         }
 
         if (OperatingSystem.IsLinux())
         {
-            return "Linux";
+            return PlatformKind.Linux;
         }
 
         if (OperatingSystem.IsMacOS())
         {
-            return "macOS";
+            return PlatformKind.MacOS;
         }
 
-        return "Unknown";
+        return PlatformKind.Unknown;
     }
+
+    private static CpuArchitecture GetCpuArchitecture() =>
+        RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.X64 => CpuArchitecture.X64,
+            Architecture.Arm64 => CpuArchitecture.Arm64,
+            _ => CpuArchitecture.Unknown
+        };
 }

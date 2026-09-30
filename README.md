@@ -163,9 +163,9 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 ## Estado do projeto
 
-**Fase atual:** RD-001 (fundação .NET) concluída.
+**Fase atual:** RD-002 (contratos do Core) concluída.
 
-Próximo passo planejado: RD-002, definição dos contratos do Core.
+Próximo passo planejado: RD-003, detector Windows.
 
 Ainda não há build de produção homologado.
 
@@ -176,11 +176,11 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 
 | Etapa | Fase | Objetivo | Status |
 |---|---|---|---|
-| **—** | **FASE 0 — FUNDAÇÃO MULTIPLATAFORMA** | **Base comum que será reutilizada por Windows, Linux e macOS** | **🟡 Atual** |
+| **—** | **FASE 0 — FUNDAÇÃO MULTIPLATAFORMA** | **Base comum que será reutilizada por Windows, Linux e macOS** | **🟢 Concluída** |
 | RD-001 | Fundação | Criar a solution .NET 8, projetos Core, CLI, Platforms e Tests, referências e build inicial | 🟢 Concluído |
-| RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | ⚪ Planejado |
-| **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **⚪ Próxima fase** |
-| RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | ⚪ Planejado |
+| RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | 🟢 Concluído |
+| **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **🟡 Próxima fase** |
+| RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | 🟡 Próxima etapa |
 | RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | ⚪ Planejado |
 | RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | ⚪ Planejado |
 | RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | ⚪ Planejado |

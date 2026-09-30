@@ -32,6 +32,8 @@ Critério de aceite:
 
 ### RD-002 — Contratos do Core
 
+**Status: concluída.**
+
 Objetivo: definir abstrações sem implementar detalhes de SO.
 
 Entregas:
