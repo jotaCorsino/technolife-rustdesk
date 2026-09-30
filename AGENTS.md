@@ -32,6 +32,24 @@ A estratégia é manter **uma base de código compartilhada** e gerar **artefato
 - A aplicação da configuração deverá priorizar `--config`.
 - O programa deve ser idempotente.
 
+## Ambiente local de desenvolvimento/teste
+
+Na máquina atualmente usada para desenvolvimento, existe um executável RustDesk disponível em:
+
+```text
+C:\Users\Estudos\Downloads\rustdesk-1.4.9-x86_64.exe
+```
+
+Este caminho é **somente uma referência do ambiente local atual** para testes durante o desenvolvimento.
+
+Regras:
+
+- não tratar esse caminho como caminho padrão do produto;
+- não codificar esse caminho diretamente na lógica da aplicação;
+- não assumir que clientes terão o RustDesk nesse local;
+- usar o arquivo apenas quando uma tarefa de teste/integracão explicitamente exigir;
+- a lógica final deverá detectar instalações e trabalhar com caminhos/configurações próprios de cada plataforma.
+
 ## Infraestrutura Technolife
 
 Configuração pública:
