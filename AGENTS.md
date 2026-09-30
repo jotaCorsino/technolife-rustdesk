@@ -21,7 +21,8 @@ A estratégia é manter **uma base de código compartilhada** e gerar **artefato
 ## Decisões arquiteturais já tomadas
 
 - Linguagem/plataforma inicial: C# / .NET 8.
-- Primeira interface: CLI simples.
+- Interface principal do cliente Windows: GUI WinForms iniciada por duplo clique, sem argumentos.
+- CLI: ferramenta técnica secundária para suporte, diagnóstico, testes e automação.
 - Primeira plataforma de implementação: Windows x64.
 - Linux inicial: Debian/Ubuntu x64.
 - macOS deverá contemplar Intel x64 e Apple Silicon arm64.

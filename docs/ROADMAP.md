@@ -147,15 +147,14 @@ executa restore, build, testes, publish, padroniza o nome
 O executável publicado foi validado localmente com ajuda, `--version`, `status`,
 `configure` e `setup`; o último confirmou que uma instalação existente não é baixada
 nem reinstalada. O artefato permanece fora do Git e ainda não possui assinatura
-Authenticode. A pre-release pública `v0.1.0-beta.1` disponibiliza o executável e seu
-checksum para testes em campo. Como Windows Sandbox não está instalado na máquina de
+Authenticode. A publicação inicial do executável permitiu validar o fluxo técnico antes da interface final de cliente. Como Windows Sandbox não está instalado na máquina de
 desenvolvimento, o teste em um Windows limpo permanece pendente.
 
 ## Correção prioritária — RD-007.1 — Experiência Windows para cliente final
 
 **Status: 🟢 Concluída localmente.**
 
-A `v0.1.0-beta.1` validou o motor técnico, porém foi reprovada para uso por cliente final: ao abrir o executável por duplo clique, sem argumentos, a aplicação mostra ajuda em terminal e encerra. Isso contraria o requisito central do produto.
+A primeira implementação validou o motor técnico, mas expôs uma experiência orientada a CLI. A RD-007.1 corrigiu esse desvio e estabeleceu a GUI por duplo clique como requisito central do produto.
 
 **Objetivo obrigatório:** o cliente deve baixar um único EXE, dar duplo clique e acompanhar todo o processo sem PowerShell, parâmetros ou conhecimento técnico.
 
@@ -252,7 +251,7 @@ Detalhamento: [RD-007.2-WINDOWS-SERVICE-CONFIG.md](RD-007.2-WINDOWS-SERVICE-CONF
 
 **Status: 🟡 Em andamento com a pre-release `v0.1.0-beta.2`.**
 
-A `v0.1.0-beta.1` permanece apenas como referência técnica e não deve ser distribuída a clientes finais. A `v0.1.0-beta.2` foi publicada exclusivamente para testes em campo; não é estável nem homologada para produção. O cenário real em uma máquina Windows limpa sem RustDesk faz parte destes testes externos.
+A `v0.1.0-beta.2` foi publicada exclusivamente para testes em campo; não é estável nem homologada para produção. O cenário real em uma máquina Windows limpa sem RustDesk faz parte destes testes externos.
 
 A RD-008 continua planejada e **não deve ser iniciada antes da validação da experiência Windows corrigida**.
 

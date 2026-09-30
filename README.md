@@ -40,11 +40,10 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-A `v0.1.0-beta.1` permanece como referência técnica histórica e **não deve ser entregue a clientes finais**. A `v0.1.0-beta.2` é uma **PRE-RELEASE destinada exclusivamente a testes em campo**; não é estável, homologada para produção nem uma release final.
+A `v0.1.0-beta.2` é a versão atual para download e está publicada como **PRE-RELEASE destinada exclusivamente a testes em campo**; não é estável, homologada para produção nem uma release final.
 
 | Sistema | Versão | Status | Download |
 |---|---|---|---|
-| Windows 10/11 x64 | `v0.1.0-beta.1` | ⛔ Referência técnica — não usar com cliente final | [Release anterior](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
 | Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 PRE-RELEASE / TESTE EM CAMPO | [Release de testes](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.2) |
 | Linux x64 | — | ⚪ Planejado | — |
 | macOS Intel | — | ⚪ Planejado | — |
@@ -177,9 +176,7 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 ## Interface Windows e CLI técnica
 
-A `v0.1.0-beta.1` ainda inicia como CLI e, sem argumentos, mostra ajuda. Esse comportamento foi reprovado para uso por clientes.
-
-A RD-007.1 criou um executável Windows separado que **abre uma interface gráfica mínima e executa automaticamente o fluxo completo de setup por duplo clique, sem argumentos e sem terminal**. A RD-007.2 fez essa GUI solicitar uma única elevação UAC antes do fluxo administrativo. A CLI permanece disponível apenas para suporte técnico e diagnóstico.
+O produto Windows é o executável gráfico `Technolife-RustDesk-Windows.exe`: **abre uma interface gráfica mínima e executa automaticamente o fluxo completo de setup por duplo clique, sem argumentos e sem terminal**. A GUI solicita uma única elevação UAC antes do fluxo administrativo. A CLI permanece disponível apenas para suporte técnico e diagnóstico.
 
 Comandos técnicos existentes:
 
@@ -264,9 +261,7 @@ Technolife. Um exit code zero com qualquer valor divergente resulta em
 
 **Fase atual:** `v0.1.0-beta.2` publicada como PRE-RELEASE para testes em campo Windows.
 
-A `v0.1.0-beta.1` comprovou o motor técnico, mas foi reprovada como artefato para cliente leigo porque o duplo clique sem argumentos apenas exibe ajuda e encerra. Ela permanece publicada somente como referência técnica.
-
-O fluxo corrigido foi testado pelo Explorer com RustDesk 1.4.9 já instalado: a GUI
+O fluxo atual foi testado pelo Explorer com RustDesk 1.4.9 já instalado: a GUI
 abriu sem terminal, solicitou uma única confirmação UAC, garantiu o serviço em
 execução, aplicou a configuração administrativamente, releu as três opções e só então
 mostrou sucesso. O log registrou `Applied` seguido de `Verified`. Na inspeção posterior,
