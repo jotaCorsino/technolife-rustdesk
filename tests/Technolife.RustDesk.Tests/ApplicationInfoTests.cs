@@ -5,8 +5,8 @@ namespace Technolife.RustDesk.Tests;
 public sealed class ApplicationInfoTests
 {
     [Fact]
-    public void ExposesExpectedDevelopmentVersion()
+    public void ExposesExpectedBetaVersion()
     {
-        Assert.Equal("0.1.0-dev", ApplicationInfo.Version);
+        Assert.Equal("0.1.0-beta.1", ApplicationInfo.Version);
     }
 }
