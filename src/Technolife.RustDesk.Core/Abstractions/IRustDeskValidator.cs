@@ -4,7 +4,7 @@ namespace Technolife.RustDesk.Core.Abstractions;
 
 public interface IRustDeskValidator
 {
-    Task<OperationResult> ValidateAsync(
+    Task<OperationResult<RustDeskValidation>> ValidateAsync(
         RustDeskInstallation installation,
         RustDeskConfiguration configuration,
         CancellationToken cancellationToken = default);

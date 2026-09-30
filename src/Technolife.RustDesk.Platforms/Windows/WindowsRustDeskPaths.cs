@@ -34,6 +34,18 @@ public sealed class WindowsRustDeskPaths
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86));
 
+    public static WindowsRustDeskPaths FromExecutablePath(string executablePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
+
+        return new WindowsRustDeskPaths([Path.GetFullPath(executablePath)]);
+    }
+
+    private WindowsRustDeskPaths(IReadOnlyList<string> candidatePaths)
+    {
+        CandidatePaths = candidatePaths;
+    }
+
     private static string CreateExecutablePath(string baseDirectory) =>
         $"{baseDirectory.TrimEnd('\\', '/')}\\{InstallationDirectoryName}\\{ExecutableFileName}";
 }

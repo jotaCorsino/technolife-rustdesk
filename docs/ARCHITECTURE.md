@@ -122,6 +122,22 @@ Na implementação Windows, `WindowsRustDeskConfigurator` recebe a instalação 
 
 Esse fluxo segue o mecanismo `--config` descrito na [documentação oficial de configuração do cliente RustDesk](https://rustdesk.com/docs/en/self-host/client-configuration/). A RD-004 interpreta a conclusão do processo e seu exit code, mas a validação funcional pós-configuração e o logging completo pertencem à RD-005.
 
+## Workflow de configuração
+
+`RustDeskConfigurationWorkflow`, no Core, coordena as dependências sem conhecer detalhes de Windows:
+
+```text
+detectar → configurar → validar → registrar → retornar resultado
+```
+
+O workflow interrompe imediatamente após uma falha, converte exceções inesperadas em resultado estruturado e remove a string exportada de detalhes antes de registrá-los ou devolvê-los. A CLI apenas compõe as implementações Windows e apresenta o resultado; a lógica do fluxo não fica na interface.
+
+## Validação pós-configuração
+
+`WindowsRustDeskValidator` confirma que a instalação usada continua declarada como Windows e que seu executável permanece acessível após o sucesso de `--config`.
+
+O resultado atual é `Applied`, não `Verified`. Exit code zero confirma a conclusão do comando, mas a documentação oficial consultada não documenta uma operação capaz de reler e comparar todos os campos importados. A implementação não acessa TOML, Registro do Windows ou outros detalhes internos para elevar artificialmente esse nível de confiança.
+
 ## Instalação
 
 A instalação e a configuração são responsabilidades diferentes.
@@ -169,6 +185,30 @@ Logs devem conter:
 - erro técnico sem expor segredos.
 
 Não registrar senhas, tokens ou material secreto.
+
+O contrato `IAppLogger` mantém o Core independente de console e filesystem. `FileAppLogger` grava um arquivo por execução, com timestamp no nome, níveis `INFO`, `WARN` e `ERROR`, normalização de linhas e redação defensiva dos valores sensíveis informados.
+
+No Windows, o diretório padrão é:
+
+```text
+%ProgramData%\Technolife\RustDeskConfigurator\logs\
+```
+
+A CLI aceita `--log-directory` para testes e diagnósticos controlados sem alterar esse padrão de produção.
+
+## CLI e códigos de saída
+
+A CLI expõe `status` para detecção sem alteração e `configure` para o workflow mutável explícito. Sem comando, apresenta somente ajuda.
+
+| Código | Significado |
+|---:|---|
+| `0` | sucesso |
+| `1` | erro geral |
+| `2` | RustDesk não encontrado |
+| `3` | configuração inválida |
+| `4` | falha de processo |
+| `5` | falha de validação |
+| `6` | plataforma não suportada |
 
 ## Idempotência
 

@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Technolife.RustDesk.Cli\Technolife.RustDesk.Cli.csproj" />
     <ProjectReference Include="..\..\src\Technolife.RustDesk.Core\Technolife.RustDesk.Core.csproj" />
     <ProjectReference Include="..\..\src\Technolife.RustDesk.Platforms\Technolife.RustDesk.Platforms.csproj" />
   </ItemGroup>

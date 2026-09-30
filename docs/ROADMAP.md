@@ -87,6 +87,8 @@ Implementação concluída com chamada direta ao executável, argumentos separad
 
 ### RD-005 — Validação e logs
 
+**Status: concluída.**
+
 Objetivo: confirmar que o fluxo terminou corretamente e produzir diagnóstico útil.
 
 Entregas:
@@ -96,6 +98,8 @@ Entregas:
 - mensagens amigáveis;
 - registro técnico;
 - política de não registrar segredos.
+
+Implementação concluída com workflow `detectar → configurar → validar`, logging em arquivo, mensagens amigáveis e códigos de saída estáveis. A validação atual usa o estado `Applied`: confirma o sucesso do processo e a permanência do executável, sem alegar leitura independente dos campos configurados.
 
 ### RD-006 — Instalação Windows
 

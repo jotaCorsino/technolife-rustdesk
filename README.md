@@ -155,6 +155,42 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 - [docs/SERVER-CONFIG.md](docs/SERVER-CONFIG.md) — configuração pública do servidor.
 - [docs/SECURITY.md](docs/SECURITY.md) — regras de segurança e distribuição.
 
+## CLI Windows
+
+A CLI não altera a configuração quando executada sem argumentos. As operações disponíveis são explícitas:
+
+```powershell
+dotnet run --project src/Technolife.RustDesk.Cli -- status
+dotnet run --project src/Technolife.RustDesk.Cli -- configure
+```
+
+Para desenvolvimento e diagnóstico controlado, é possível substituir o executável detectado e o diretório de logs:
+
+```powershell
+dotnet run --project src/Technolife.RustDesk.Cli -- status --rustdesk-path <caminho>
+dotnet run --project src/Technolife.RustDesk.Cli -- configure --rustdesk-path <caminho> --log-directory <diretório>
+```
+
+O diretório padrão de produção planejado para logs no Windows é:
+
+```text
+%ProgramData%\Technolife\RustDeskConfigurator\logs\
+```
+
+O fluxo considera a configuração como `Applied` quando `--config` termina com exit code zero e o executável continua acessível. Isso não equivale a `Verified`: a documentação oficial consultada não documenta uma operação de leitura posterior de todos os campos, e o configurador não lê arquivos internos do RustDesk para simular essa confirmação.
+
+### Códigos de saída
+
+| Código | Resultado |
+|---:|---|
+| `0` | Fluxo concluído com sucesso |
+| `1` | Erro geral |
+| `2` | RustDesk não encontrado |
+| `3` | Configuração inválida |
+| `4` | Falha no processo de configuração |
+| `5` | Validação falhou |
+| `6` | Plataforma não suportada |
+
 ## Referências oficiais
 
 - RustDesk Client Configuration: https://rustdesk.com/docs/en/self-host/client-configuration/
@@ -163,9 +199,9 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 ## Estado do projeto
 
-**Fase atual:** RD-004 (aplicação da configuração no Windows) concluída.
+**Fase atual:** RD-005 (validação, mensagens e logs no Windows) concluída.
 
-Próximo passo planejado: RD-005, validação do fluxo, mensagens e logs.
+Próximo passo planejado: RD-006, instalação automática Windows.
 
 Ainda não há build de produção homologado.
 
@@ -182,8 +218,8 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **🟡 Atual** |
 | RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | 🟢 Concluído |
 | RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | 🟢 Concluído |
-| RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | 🟡 Próxima etapa |
-| RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | ⚪ Planejado |
+| RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | 🟢 Concluído |
+| RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟡 Próxima etapa |
 | RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
 | **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **⚪ Planejado** |
 | **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejado** |

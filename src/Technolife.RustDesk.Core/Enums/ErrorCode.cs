@@ -11,5 +11,6 @@ public enum ErrorCode
     ConfigurationFailed,
     ValidationFailed,
     UnsupportedPlatform,
-    DetectionFailed
+    DetectionFailed,
+    UnexpectedFailure
 }

@@ -1,12 +1,3 @@
-using Technolife.RustDesk.Core;
-using Technolife.RustDesk.Platforms;
+using Technolife.RustDesk.Cli;
 
-var platform = new PlatformInformationProvider().Current;
-
-Console.WriteLine(ApplicationInfo.Name);
-Console.WriteLine($"Version: {ApplicationInfo.Version}");
-Console.WriteLine();
-Console.WriteLine($"Platform: {platform.Kind}");
-Console.WriteLine($"Architecture: {platform.Architecture}");
-Console.WriteLine();
-Console.WriteLine("Status: Project foundation initialized.");
+return await CliApplication.RunAsync(args, Console.Out);
