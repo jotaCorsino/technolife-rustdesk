@@ -27,6 +27,9 @@ packages/
 # Publish
 publish/
 
+# Local development/test artifacts
+tools/local/
+
 # OS
 .DS_Store
 Thumbs.db

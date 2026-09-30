@@ -177,7 +177,7 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | Etapa | Fase | Objetivo | Status |
 |---|---|---|---|
 | **—** | **FASE 0 — FUNDAÇÃO MULTIPLATAFORMA** | **Base comum que será reutilizada por Windows, Linux e macOS** | **🟡 Atual** |
-| RD-001 | Fundação | Criar a solution .NET 8, projetos Core, CLI, Platforms e Tests, referências e build inicial | 🟡 Em andamento |
+| RD-001 | Fundação | Criar a solution .NET 8, projetos Core, CLI, Platforms e Tests, referências e build inicial | 🟢 Concluído |
 | RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | ⚪ Planejado |
 | **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **⚪ Próxima fase** |
 | RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | ⚪ Planejado |

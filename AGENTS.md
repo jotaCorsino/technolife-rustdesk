@@ -34,13 +34,19 @@ A estratégia é manter **uma base de código compartilhada** e gerar **artefato
 
 ## Ambiente local de desenvolvimento/teste
 
-Na máquina atualmente usada para desenvolvimento, existe um executável RustDesk disponível em:
+Na máquina atualmente usada para desenvolvimento, o executável RustDesk de origem está disponível em:
 
 ```text
 C:\Users\Estudos\Downloads\rustdesk-1.4.9-x86_64.exe
 ```
 
-Este caminho é **somente uma referência do ambiente local atual** para testes durante o desenvolvimento.
+Uma cópia destinada aos testes locais do repositório deve ser usada a partir de:
+
+```text
+tools\local\rustdesk\rustdesk-1.4.9-x86_64.exe
+```
+
+Essa pasta é ignorada pelo Git. O arquivo é **somente uma referência do ambiente local atual** para testes durante o desenvolvimento e nunca deve ser versionado.
 
 Regras:
 
