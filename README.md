@@ -170,26 +170,36 @@ Ainda não há build de produção homologado.
 
 ## Acompanhamento do projeto
 
-Esta tabela resume o desenvolvimento do projeto do início até a primeira versão completa planejada.
+Esta tabela resume o desenvolvimento do projeto do início até a primeira versão completa planejada. As etapas estão separadas por blocos para deixar claro em qual sistema operacional estamos trabalhando em cada fase.
 
 | Etapa | Fase | Objetivo | Status |
 |---|---|---|---|
+| **—** | **FASE 0 — FUNDAÇÃO MULTIPLATAFORMA** | **Base comum que será reutilizada por Windows, Linux e macOS** | **🟡 Atual** |
 | RD-001 | Fundação | Criar a solution .NET 8, projetos Core, CLI, Platforms e Tests, referências e build inicial | 🟡 Em andamento |
 | RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | ⚪ Planejado |
-| RD-003 | Windows MVP | Detectar instalações existentes do RustDesk no Windows | ⚪ Planejado |
-| RD-004 | Windows MVP | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | ⚪ Planejado |
-| RD-005 | Windows MVP | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | ⚪ Planejado |
-| RD-006 | Windows MVP | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | ⚪ Planejado |
-| RD-007 | Windows MVP | Gerar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
-| RD-008 | Linux | Implementar suporte inicial para Debian/Ubuntu x64 | ⚪ Planejado |
-| RD-009 | Linux | Expandir suporte para outras distribuições e formatos, conforme demanda | ⚪ Futuro |
-| RD-010 | macOS | Implementar suporte para macOS Intel x64 | ⚪ Planejado |
-| RD-011 | macOS | Implementar suporte para macOS Apple Silicon arm64 | ⚪ Planejado |
-| RD-012 | Experiência | Criar interface gráfica usando o mesmo Core já validado | ⚪ Planejado |
+| **—** | **FASE 1 — WINDOWS x64** | **Construir e homologar a primeira versão funcional do configurador** | **⚪ Próxima fase** |
+| RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | ⚪ Planejado |
+| RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | ⚪ Planejado |
+| RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | ⚪ Planejado |
+| RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | ⚪ Planejado |
+| RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
+| **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **⚪ Planejado** |
+| **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejado** |
+| RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejado |
+| RD-009 | Linux — expansão | Adicionar outras distribuições e formatos conforme demanda real | ⚪ Futuro |
+| **—** | **MARCO — LINUX HOMOLOGADO** | **Disponibilizar build Linux suportado oficialmente pelo projeto** | **⚪ Planejado** |
+| **—** | **FASE 3 — macOS** | **Adaptar o Core ao macOS e tratar permissões específicas do sistema** | **⚪ Planejado** |
+| RD-010 | macOS Intel | Implementar e homologar suporte x64 | ⚪ Planejado |
+| RD-011 | macOS Apple Silicon | Implementar e homologar suporte arm64 | ⚪ Planejado |
+| **—** | **MARCO — macOS HOMOLOGADO** | **Disponibilizar builds para Intel e Apple Silicon** | **⚪ Planejado** |
+| **—** | **FASE 4 — EXPERIÊNCIA E AUTOMAÇÃO** | **Transformar os builds funcionais em um produto simples de distribuir e utilizar** | **⚪ Planejado** |
+| RD-012 | Interface | Criar interface gráfica usando o mesmo Core já validado | ⚪ Planejado |
 | RD-013 | Automação | Configurar GitHub Actions para build e testes multiplataforma | ⚪ Planejado |
 | RD-014 | Distribuição | Padronizar releases, downloads, checksums e matriz de compatibilidade | ⚪ Planejado |
+| **—** | **FASE 5 — RELEASE ESTÁVEL** | **Homologação final do produto multiplataforma** | **⚪ Planejado** |
 | Release 1.0 | Conclusão | Publicar a primeira versão estável e homologada para as plataformas suportadas | ⚪ Planejado |
 
 Legenda: 🟢 concluído · 🟡 em andamento · ⚪ planejado/futuro
 
 O detalhamento técnico de cada etapa continua disponível em [docs/ROADMAP.md](docs/ROADMAP.md).
+
