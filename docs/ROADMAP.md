@@ -8,6 +8,8 @@ O desenvolvimento será incremental. A primeira meta não é criar um instalador
 
 ### RD-001 — Fundação do projeto
 
+**Status: concluída.**
+
 Objetivo: criar a solution .NET 8 e a estrutura inicial.
 
 Entregas:

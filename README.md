@@ -163,7 +163,9 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 ## Estado do projeto
 
-**Fase atual:** documentação e fundação.
+**Fase atual:** RD-001 (fundação .NET) concluída.
+
+Próximo passo planejado: RD-002, definição dos contratos do Core.
 
 Ainda não há build de produção homologado.
 
