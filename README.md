@@ -166,3 +166,30 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 **Fase atual:** documentação e fundação.
 
 Ainda não há build de produção homologado.
+
+
+## Acompanhamento do projeto
+
+Esta tabela resume o desenvolvimento do projeto do início até a primeira versão completa planejada.
+
+| Etapa | Fase | Objetivo | Status |
+|---|---|---|---|
+| RD-001 | Fundação | Criar a solution .NET 8, projetos Core, CLI, Platforms e Tests, referências e build inicial | 🟡 Em andamento |
+| RD-002 | Core | Definir contratos, modelos e abstrações compartilhadas do configurador | ⚪ Planejado |
+| RD-003 | Windows MVP | Detectar instalações existentes do RustDesk no Windows | ⚪ Planejado |
+| RD-004 | Windows MVP | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | ⚪ Planejado |
+| RD-005 | Windows MVP | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | ⚪ Planejado |
+| RD-006 | Windows MVP | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | ⚪ Planejado |
+| RD-007 | Windows MVP | Gerar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
+| RD-008 | Linux | Implementar suporte inicial para Debian/Ubuntu x64 | ⚪ Planejado |
+| RD-009 | Linux | Expandir suporte para outras distribuições e formatos, conforme demanda | ⚪ Futuro |
+| RD-010 | macOS | Implementar suporte para macOS Intel x64 | ⚪ Planejado |
+| RD-011 | macOS | Implementar suporte para macOS Apple Silicon arm64 | ⚪ Planejado |
+| RD-012 | Experiência | Criar interface gráfica usando o mesmo Core já validado | ⚪ Planejado |
+| RD-013 | Automação | Configurar GitHub Actions para build e testes multiplataforma | ⚪ Planejado |
+| RD-014 | Distribuição | Padronizar releases, downloads, checksums e matriz de compatibilidade | ⚪ Planejado |
+| Release 1.0 | Conclusão | Publicar a primeira versão estável e homologada para as plataformas suportadas | ⚪ Planejado |
+
+Legenda: 🟢 concluído · 🟡 em andamento · ⚪ planejado/futuro
+
+O detalhamento técnico de cada etapa continua disponível em [docs/ROADMAP.md](docs/ROADMAP.md).
