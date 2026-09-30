@@ -39,4 +39,29 @@ public sealed class DownloadRequestTests
                 "C:\\downloads\\rustdesk.exe",
                 "invalid"));
     }
+
+    [Fact]
+    public void StoresPositiveTimeout()
+    {
+        var timeout = TimeSpan.FromMinutes(5);
+
+        var request = new DownloadRequest(
+            new Uri("https://example.test/rustdesk.exe"),
+            "C:\\downloads\\rustdesk.exe",
+            Sha256,
+            timeout);
+
+        Assert.Equal(timeout, request.Timeout);
+    }
+
+    [Fact]
+    public void RejectsNonPositiveTimeout()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new DownloadRequest(
+                new Uri("https://example.test/rustdesk.exe"),
+                "C:\\downloads\\rustdesk.exe",
+                Sha256,
+                TimeSpan.Zero));
+    }
 }

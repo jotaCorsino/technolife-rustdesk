@@ -12,5 +12,7 @@ public enum ErrorCode
     ValidationFailed,
     UnsupportedPlatform,
     DetectionFailed,
-    UnexpectedFailure
+    UnexpectedFailure,
+    InstallationFailed,
+    ElevationFailed
 }

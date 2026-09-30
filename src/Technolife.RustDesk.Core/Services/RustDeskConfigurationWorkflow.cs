@@ -51,16 +51,34 @@ public sealed class RustDeskConfigurationWorkflow
         }
         catch (Exception exception)
         {
-            var technicalDetails = Redact(
-                $"{exception.GetType().Name}: {exception.Message}",
-                configuration.ExportedConfiguration);
+            return CreateUnexpectedFailure(exception, configuration);
+        }
+    }
 
-            _logger.Error("The configuration workflow failed unexpectedly.", technicalDetails);
+    public async Task<OperationResult<RustDeskConfigurationWorkflowResult>>
+        ExecuteDetectedAsync(
+            RustDeskInstallation installation,
+            RustDeskConfiguration configuration,
+            CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(installation);
+        ArgumentNullException.ThrowIfNull(configuration);
 
-            return OperationResult<RustDeskConfigurationWorkflowResult>.Failed(
-                ErrorCode.UnexpectedFailure,
-                "The RustDesk configuration workflow failed unexpectedly.",
-                technicalDetails);
+        try
+        {
+            return await ExecuteDetectedCoreAsync(
+                    installation,
+                    configuration,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return CreateUnexpectedFailure(exception, configuration);
         }
     }
 
@@ -95,6 +113,26 @@ public sealed class RustDeskConfigurationWorkflow
         {
             _logger.Warning("RustDesk was not found. No changes were made.");
 
+            return OperationResult<RustDeskConfigurationWorkflowResult>.Failed(
+                ErrorCode.RustDeskNotFound,
+                "RustDesk was not found. No changes were made.");
+        }
+
+        return await ExecuteDetectedCoreAsync(
+                installation,
+                configuration,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<OperationResult<RustDeskConfigurationWorkflowResult>>
+        ExecuteDetectedCoreAsync(
+            RustDeskInstallation installation,
+            RustDeskConfiguration configuration,
+            CancellationToken cancellationToken)
+    {
+        if (!installation.Found || string.IsNullOrWhiteSpace(installation.ExecutablePath))
+        {
             return OperationResult<RustDeskConfigurationWorkflowResult>.Failed(
                 ErrorCode.RustDeskNotFound,
                 "RustDesk was not found. No changes were made.");
@@ -147,6 +185,22 @@ public sealed class RustDeskConfigurationWorkflow
         return OperationResult<RustDeskConfigurationWorkflowResult>.Succeeded(
             workflowResult,
             "RustDesk configuration workflow completed successfully.");
+    }
+
+    private OperationResult<RustDeskConfigurationWorkflowResult> CreateUnexpectedFailure(
+        Exception exception,
+        RustDeskConfiguration configuration)
+    {
+        var technicalDetails = Redact(
+            $"{exception.GetType().Name}: {exception.Message}",
+            configuration.ExportedConfiguration);
+
+        _logger.Error("The configuration workflow failed unexpectedly.", technicalDetails);
+
+        return OperationResult<RustDeskConfigurationWorkflowResult>.Failed(
+            ErrorCode.UnexpectedFailure,
+            "The RustDesk configuration workflow failed unexpectedly.",
+            technicalDetails);
     }
 
     private OperationResult<RustDeskConfigurationWorkflowResult> CreateFailure(

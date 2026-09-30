@@ -6,7 +6,8 @@ public sealed class ProcessRequest
         string executable,
         IEnumerable<string>? arguments = null,
         string? workingDirectory = null,
-        TimeSpan? timeout = null)
+        TimeSpan? timeout = null,
+        bool requiresElevation = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
 
@@ -27,6 +28,7 @@ public sealed class ProcessRequest
         Arguments = Array.AsReadOnly(arguments?.ToArray() ?? Array.Empty<string>());
         WorkingDirectory = workingDirectory;
         Timeout = timeout;
+        RequiresElevation = requiresElevation;
     }
 
     public string Executable { get; }
@@ -36,6 +38,8 @@ public sealed class ProcessRequest
     public string? WorkingDirectory { get; }
 
     public TimeSpan? Timeout { get; }
+
+    public bool RequiresElevation { get; }
 
     public override string ToString() =>
         $"Process request for '{Path.GetFileName(Executable)}' " +

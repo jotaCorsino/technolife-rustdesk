@@ -48,6 +48,7 @@ IRustDeskValidator
 IPlatformEnvironment
 IProcessRunner
 IDownloadClient
+IFileIntegrityValidator
 ```
 
 Os nomes são propostas iniciais e podem ser refinados durante RD-001/RD-002.
@@ -153,6 +154,26 @@ RustDesk ausente
 
 Isso permite usar o configurador mesmo em máquinas onde o RustDesk foi instalado manualmente, por RMM ou por outro método.
 
+No Windows x64, `RustDeskSetupWorkflow` coordena o fluxo explícito do comando
+`setup`. Quando a detecção inicial não encontra o RustDesk, o
+`WindowsRustDeskInstaller` obtém o pacote fixado, valida seu SHA-256, chama o
+instalador com o argumento separado `--silent-install` e solicita elevação apenas
+para esse processo por meio de `runas`. O prompt do UAC permanece sob controle do
+Windows e pode ser recusado pelo usuário.
+
+O pacote é preparado em
+`%TEMP%\Technolife\RustDeskConfigurator\<identificador-único>\`. O diretório de cada
+execução é removido em bloco `finally`; uma falha de limpeza gera apenas aviso seguro.
+Depois de exit code zero, o detector tenta localizar novamente a instalação antes de
+permitir configuração. Sucesso do instalador sem redetecção é tratado como falha.
+
+`HttpDownloadClient` exige HTTPS, recebe a resposta em streaming e grava primeiro em
+arquivo parcial com nome único. Somente um download completo é promovido ao destino.
+`Sha256FileIntegrityValidator` calcula o hash por streaming e a execução é bloqueada
+se houver divergência. `--installer-path` troca apenas a aquisição remota por uma
+cópia local de teste; a validação de integridade e todas as etapas posteriores são as
+mesmas.
+
 ## Política de versões
 
 Não usar "latest" como comportamento de produção sem controle.
@@ -171,7 +192,17 @@ Futuramente essa política poderá vir de um manifesto semelhante a:
 }
 ```
 
-O manifesto real só deverá ser criado quando houver uma versão homologada.
+O manifesto Windows inicial está versionado em `WindowsRustDeskPackageManifest`:
+
+```text
+Versão: 1.4.9
+Arquitetura: Windows x64
+URL: https://github.com/rustdesk/rustdesk/releases/download/1.4.9/rustdesk-1.4.9-x86_64.exe
+SHA-256: EAEDEB0088E687BF46F7C46A9C6EA5493CE51F3134DFD6ACBEDB47B5B9136274
+```
+
+Uma atualização exige alteração explícita desse manifesto e nova homologação; não há
+resolução automática de `latest`.
 
 ## Logging
 
@@ -198,7 +229,9 @@ A CLI aceita `--log-directory` para testes e diagnósticos controlados sem alter
 
 ## CLI e códigos de saída
 
-A CLI expõe `status` para detecção sem alteração e `configure` para o workflow mutável explícito. Sem comando, apresenta somente ajuda.
+A CLI expõe `status` para detecção sem alteração, `configure` para configurar uma
+instalação existente e `setup` para instalar quando necessário e então configurar.
+Sem comando, apresenta somente ajuda.
 
 | Código | Significado |
 |---:|---|
@@ -209,6 +242,10 @@ A CLI expõe `status` para detecção sem alteração e `configure` para o workf
 | `4` | falha de processo |
 | `5` | falha de validação |
 | `6` | plataforma não suportada |
+| `7` | falha de download |
+| `8` | checksum inválido |
+| `9` | falha de instalação ou redetecção |
+| `10` | elevação recusada ou com falha |
 
 ## Idempotência
 

@@ -2,8 +2,10 @@ using Technolife.RustDesk.Core.Models;
 
 namespace Technolife.RustDesk.Core.Abstractions;
 
-public interface IRustDeskInstaller
+public interface IFileIntegrityValidator
 {
-    Task<OperationResult> InstallAsync(
+    Task<OperationResult> ValidateSha256Async(
+        string filePath,
+        string expectedSha256,
         CancellationToken cancellationToken = default);
 }

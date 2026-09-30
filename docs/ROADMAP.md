@@ -103,6 +103,8 @@ Implementação concluída com workflow `detectar → configurar → validar`, l
 
 ### RD-006 — Instalação Windows
 
+**Status: concluída.**
+
 Objetivo: instalar RustDesk quando ausente.
 
 Entregas:
@@ -115,6 +117,12 @@ Entregas:
 - redetecção;
 - configuração após instalação;
 - tratamento de falta de internet e privilégio.
+
+Implementação concluída para Windows x64 com RustDesk `1.4.9` fixado em manifesto,
+origem oficial, SHA-256 obrigatório, download HTTPS em streaming, instalação oficial
+via `--silent-install`, elevação pontual pelo UAC, redetecção e continuidade para
+configuração e validação. O comando `setup` não reinstala quando o RustDesk já está
+presente e aceita `--installer-path` somente para testes locais controlados.
 
 ### RD-007 — Publicação Windows
 

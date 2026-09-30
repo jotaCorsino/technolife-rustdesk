@@ -20,6 +20,20 @@ public sealed class ProcessModelsTests
         Assert.Equal(new[] { "--config", "value with spaces" }, request.Arguments);
         Assert.Equal("C:\\test", request.WorkingDirectory);
         Assert.Equal(TimeSpan.FromSeconds(30), request.Timeout);
+        Assert.False(request.RequiresElevation);
+    }
+
+    [Fact]
+    public void RepresentsElevationWithoutExposingArguments()
+    {
+        const string sensitiveArgument = "sensitive-installer-argument";
+        var request = new ProcessRequest(
+            "installer.exe",
+            [sensitiveArgument],
+            requiresElevation: true);
+
+        Assert.True(request.RequiresElevation);
+        Assert.DoesNotContain(sensitiveArgument, request.ToString());
     }
 
     [Fact]

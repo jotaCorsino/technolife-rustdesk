@@ -31,12 +31,18 @@ public sealed class SystemProcessRunner : IProcessRunner
             if (!processStarted)
             {
                 return OperationResult<ProcessResult>.Failed(
-                    ErrorCode.ProcessFailed,
+                    request.RequiresElevation
+                        ? ErrorCode.ElevationFailed
+                        : ErrorCode.ProcessFailed,
                     "The requested executable could not be started.");
             }
 
-            var standardOutputTask = process.StandardOutput.ReadToEndAsync();
-            var standardErrorTask = process.StandardError.ReadToEndAsync();
+            var standardOutputTask = request.RequiresElevation
+                ? Task.FromResult(string.Empty)
+                : process.StandardOutput.ReadToEndAsync();
+            var standardErrorTask = request.RequiresElevation
+                ? Task.FromResult(string.Empty)
+                : process.StandardError.ReadToEndAsync();
 
             using var executionCancellation =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -81,7 +87,11 @@ public sealed class SystemProcessRunner : IProcessRunner
                 await TerminateAsync(process).ConfigureAwait(false);
             }
 
-            return CreateStartFailure(ErrorCode.PermissionDenied, exception);
+            return CreateStartFailure(
+                request.RequiresElevation
+                    ? ErrorCode.ElevationFailed
+                    : ErrorCode.PermissionDenied,
+                exception);
         }
         catch (SecurityException exception)
         {
@@ -90,7 +100,11 @@ public sealed class SystemProcessRunner : IProcessRunner
                 await TerminateAsync(process).ConfigureAwait(false);
             }
 
-            return CreateStartFailure(ErrorCode.PermissionDenied, exception);
+            return CreateStartFailure(
+                request.RequiresElevation
+                    ? ErrorCode.ElevationFailed
+                    : ErrorCode.PermissionDenied,
+                exception);
         }
         catch (Exception exception) when (IsProcessException(exception))
         {
@@ -99,7 +113,11 @@ public sealed class SystemProcessRunner : IProcessRunner
                 await TerminateAsync(process).ConfigureAwait(false);
             }
 
-            return CreateStartFailure(ErrorCode.ProcessFailed, exception);
+            return CreateStartFailure(
+                request.RequiresElevation
+                    ? ErrorCode.ElevationFailed
+                    : ErrorCode.ProcessFailed,
+                exception);
         }
     }
 
@@ -108,11 +126,16 @@ public sealed class SystemProcessRunner : IProcessRunner
         var startInfo = new ProcessStartInfo
         {
             FileName = request.Executable,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
+            UseShellExecute = request.RequiresElevation,
+            RedirectStandardOutput = !request.RequiresElevation,
+            RedirectStandardError = !request.RequiresElevation,
+            CreateNoWindow = !request.RequiresElevation
         };
+
+        if (request.RequiresElevation)
+        {
+            startInfo.Verb = "runas";
+        }
 
         if (request.WorkingDirectory is not null)
         {

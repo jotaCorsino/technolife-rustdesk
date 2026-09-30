@@ -100,14 +100,15 @@ Mais detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Estratégia de desenvolvimento
 
-A primeira entrega deverá priorizar um fluxo pequeno e testável:
+A primeira entrega Windows já cobre um fluxo pequeno e testável:
 
 - detectar RustDesk;
+- instalar a versão homologada quando ausente;
 - aplicar configuração em uma instalação existente;
 - validar;
 - gerar logs.
 
-Somente depois serão adicionadas instalação automática, builds multiplataforma, interface gráfica e automações de release.
+Os próximos passos são a publicação Windows, os builds multiplataforma, a interface gráfica e as automações de release.
 
 O planejamento completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -116,7 +117,7 @@ O planejamento completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 ### Windows
 
 - primeira plataforma de implementação;
-- suporte planejado a instalação silenciosa;
+- instalação silenciosa da versão homologada;
 - elevação administrativa quando necessária;
 - detecção de instalação padrão e possíveis variações.
 
@@ -162,6 +163,7 @@ A CLI não altera a configuração quando executada sem argumentos. As operaçõ
 ```powershell
 dotnet run --project src/Technolife.RustDesk.Cli -- status
 dotnet run --project src/Technolife.RustDesk.Cli -- configure
+dotnet run --project src/Technolife.RustDesk.Cli -- setup
 ```
 
 Para desenvolvimento e diagnóstico controlado, é possível substituir o executável detectado e o diretório de logs:
@@ -169,7 +171,32 @@ Para desenvolvimento e diagnóstico controlado, é possível substituir o execut
 ```powershell
 dotnet run --project src/Technolife.RustDesk.Cli -- status --rustdesk-path <caminho>
 dotnet run --project src/Technolife.RustDesk.Cli -- configure --rustdesk-path <caminho> --log-directory <diretório>
+dotnet run --project src/Technolife.RustDesk.Cli -- setup --installer-path <instalador-local> --log-directory <diretório>
 ```
+
+`configure` exige que o RustDesk já esteja instalado. `setup` detecta a instalação e,
+se ela estiver ausente, instala o pacote homologado, detecta novamente, configura e
+valida. `--installer-path` é uma substituição explícita para testes controlados; o
+caminho não é padrão de produção e o arquivo local passa pela mesma validação SHA-256.
+
+### Pacote RustDesk homologado para Windows
+
+| Campo | Valor |
+|---|---|
+| Versão | `1.4.9` |
+| Plataforma | Windows x64 |
+| Arquivo | `rustdesk-1.4.9-x86_64.exe` |
+| Origem | [GitHub Releases oficial do RustDesk](https://github.com/rustdesk/rustdesk/releases/download/1.4.9/rustdesk-1.4.9-x86_64.exe) |
+| SHA-256 | `EAEDEB0088E687BF46F7C46A9C6EA5493CE51F3134DFD6ACBEDB47B5B9136274` |
+
+O configurador não consulta `latest`. O download usa HTTPS e streaming, e o pacote
+só é executado após o SHA-256 corresponder ao manifesto versionado. A instalação usa
+o mecanismo oficial `--silent-install`; somente esse processo solicita elevação pelo
+UAC. Arquivos temporários ficam sob
+`%TEMP%\Technolife\RustDeskConfigurator\<execução>\` e são removidos ao final.
+
+O fluxo é idempotente: se o RustDesk já estiver presente, `setup` não baixa nem
+reinstala o pacote e segue diretamente para configuração e validação.
 
 O diretório padrão de produção planejado para logs no Windows é:
 
@@ -190,6 +217,10 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 | `4` | Falha no processo de configuração |
 | `5` | Validação falhou |
 | `6` | Plataforma não suportada |
+| `7` | Falha de download |
+| `8` | Checksum inválido |
+| `9` | Falha de instalação ou redetecção |
+| `10` | Elevação recusada ou com falha |
 
 ## Referências oficiais
 
@@ -199,9 +230,9 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 
 ## Estado do projeto
 
-**Fase atual:** RD-005 (validação, mensagens e logs no Windows) concluída.
+**Fase atual:** RD-006 (instalação automática homologada no Windows) concluída.
 
-Próximo passo planejado: RD-006, instalação automática Windows.
+Próximo passo planejado: RD-007, publicação e homologação do executável Windows x64.
 
 Ainda não há build de produção homologado.
 
@@ -219,7 +250,7 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | RD-003 | Windows | Detectar instalações existentes do RustDesk no Windows | 🟢 Concluído |
 | RD-004 | Windows | Aplicar a configuração Technolife em RustDesk já instalado usando `--config` | 🟢 Concluído |
 | RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | 🟢 Concluído |
-| RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟡 Próxima etapa |
+| RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟢 Concluído |
 | RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | ⚪ Planejado |
 | **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **⚪ Planejado** |
 | **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejado** |

@@ -13,6 +13,10 @@ public static class CliExitCodeMapper
             ErrorCode.ProcessFailed => CliExitCode.ProcessFailed,
             ErrorCode.ValidationFailed => CliExitCode.ValidationFailed,
             ErrorCode.UnsupportedPlatform => CliExitCode.UnsupportedPlatform,
+            ErrorCode.DownloadFailed => CliExitCode.DownloadFailed,
+            ErrorCode.ChecksumMismatch => CliExitCode.ChecksumMismatch,
+            ErrorCode.InstallationFailed => CliExitCode.InstallationFailed,
+            ErrorCode.ElevationFailed => CliExitCode.ElevationFailed,
             _ => CliExitCode.GeneralError
         };
 }

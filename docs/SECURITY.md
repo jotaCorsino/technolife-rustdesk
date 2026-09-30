@@ -35,6 +35,11 @@ Todo download automático deverá:
 4. falhar de forma segura em caso de divergência;
 5. registrar versão e resultado da validação.
 
+Na implementação Windows inicial, a versão `1.4.9` x64, a URL oficial e o SHA-256
+ficam fixados no manifesto versionado. O cliente grava em arquivo parcial, não usa a
+resolução dinâmica de `latest` e só promove o download completo. Divergência de hash
+rejeita o pacote antes de qualquer execução e aciona a limpeza do artefato.
+
 ## Execução elevada
 
 O programa não deve assumir que está sendo executado como administrador/root.
@@ -45,6 +50,11 @@ Ele deve:
 - solicitar apenas quando a operação exigir;
 - informar claramente falhas de permissão;
 - evitar executar toda a aplicação elevada quando uma operação pontual for suficiente.
+
+No Windows, somente o instalador homologado é iniciado com o verbo `runas`. O Windows
+exibe e controla o consentimento UAC; recusa ou falha retorna um erro estruturado. A
+detecção, o download, a validação de integridade, a configuração e a validação
+pós-configuração não solicitam elevação por essa política.
 
 ## Processos externos
 

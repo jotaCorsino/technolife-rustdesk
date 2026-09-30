@@ -15,6 +15,10 @@ public sealed class CliTests
     [InlineData(ErrorCode.ProcessFailed, CliExitCode.ProcessFailed)]
     [InlineData(ErrorCode.ValidationFailed, CliExitCode.ValidationFailed)]
     [InlineData(ErrorCode.UnsupportedPlatform, CliExitCode.UnsupportedPlatform)]
+    [InlineData(ErrorCode.DownloadFailed, CliExitCode.DownloadFailed)]
+    [InlineData(ErrorCode.ChecksumMismatch, CliExitCode.ChecksumMismatch)]
+    [InlineData(ErrorCode.InstallationFailed, CliExitCode.InstallationFailed)]
+    [InlineData(ErrorCode.ElevationFailed, CliExitCode.ElevationFailed)]
     [InlineData(ErrorCode.DetectionFailed, CliExitCode.GeneralError)]
     public void MapsStableExitCodes(ErrorCode errorCode, CliExitCode expected)
     {
@@ -29,7 +33,8 @@ public sealed class CliTests
         var exitCode = await CliApplication.RunAsync([], output);
 
         Assert.Equal((int)CliExitCode.Success, exitCode);
-        Assert.Contains("Nenhuma configuração é alterada", output.ToString());
+        Assert.Contains("Somente os comandos explícitos", output.ToString());
+        Assert.Contains("setup", output.ToString());
     }
 
     [Fact]
@@ -48,5 +53,26 @@ public sealed class CliTests
 
         Assert.DoesNotContain(SensitiveConfiguration, output.ToString());
         Assert.Contains("Não foi possível aplicar", output.ToString());
+    }
+
+    [Theory]
+    [InlineData(ErrorCode.DownloadFailed, "baixar")]
+    [InlineData(ErrorCode.ChecksumMismatch, "integridade")]
+    [InlineData(ErrorCode.InstallationFailed, "instalar")]
+    [InlineData(ErrorCode.ElevationFailed, "elevação")]
+    public void SetupFailureOutputIsFriendlyAndDoesNotExposeDetails(
+        ErrorCode errorCode,
+        string expectedText)
+    {
+        using var output = new StringWriter();
+        var result = OperationResult<RustDeskSetupWorkflowResult>.Failed(
+            errorCode,
+            $"Failed for {SensitiveConfiguration}.",
+            $"Technical details for {SensitiveConfiguration}.");
+
+        CliApplication.WriteSetupResult(output, result, @"C:\logs\technolife.log");
+
+        Assert.DoesNotContain(SensitiveConfiguration, output.ToString());
+        Assert.Contains(expectedText, output.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 }

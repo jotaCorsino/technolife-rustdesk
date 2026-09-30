@@ -4,7 +4,11 @@ using Technolife.RustDesk.Core.Models;
 using Technolife.RustDesk.Core.Services;
 using Technolife.RustDesk.Platforms;
 using Technolife.RustDesk.Platforms.Configuration;
+using Technolife.RustDesk.Platforms.Downloads;
+using Technolife.RustDesk.Platforms.Integrity;
 using Technolife.RustDesk.Platforms.Logging;
+using Technolife.RustDesk.Platforms.Packages;
+using Technolife.RustDesk.Platforms.Processes;
 using Technolife.RustDesk.Platforms.Windows;
 
 namespace Technolife.RustDesk.Cli;
@@ -55,6 +59,11 @@ public static class CliApplication
                     cancellationToken).ConfigureAwait(false),
                 "configure" => await RunConfigureAsync(
                     detector,
+                    platformEnvironment,
+                    options,
+                    output,
+                    cancellationToken).ConfigureAwait(false),
+                "setup" => await RunSetupAsync(
                     platformEnvironment,
                     options,
                     output,
@@ -145,6 +154,53 @@ public static class CliApplication
         return (int)CliExitCodeMapper.FromErrorCode(result.ErrorCode);
     }
 
+    private static async Task<int> RunSetupAsync(
+        PlatformInformationProvider platformEnvironment,
+        CliOptions options,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        var configuration = TechnolifeRustDeskConfiguration.Create();
+        var logDirectory = options.LogDirectory ?? WindowsLogPaths.GetDefaultDirectory();
+        var logger = new FileAppLogger(
+            logDirectory,
+            [configuration.ExportedConfiguration]);
+        var detector = new WindowsRustDeskDetector(
+            new SystemFileProbe(),
+            platformEnvironment,
+            WindowsRustDeskPaths.FromCurrentEnvironment());
+        var configurationWorkflow = new RustDeskConfigurationWorkflow(
+            detector,
+            new WindowsRustDeskConfigurator(),
+            new WindowsRustDeskValidator(),
+            platformEnvironment,
+            logger);
+
+        using var downloadClient = new HttpDownloadClient();
+        var installer = new WindowsRustDeskInstaller(
+            WindowsRustDeskPackageManifest.Create(),
+            downloadClient,
+            new Sha256FileIntegrityValidator(),
+            new SystemProcessRunner(),
+            platformEnvironment,
+            new SystemInstallerFileSystem(),
+            logger,
+            options.InstallerPath);
+        var workflow = new RustDeskSetupWorkflow(
+            detector,
+            installer,
+            configurationWorkflow,
+            platformEnvironment,
+            logger);
+
+        var result = await workflow
+            .ExecuteAsync(configuration, cancellationToken)
+            .ConfigureAwait(false);
+
+        WriteSetupResult(output, result, logger.Destination);
+        return (int)CliExitCodeMapper.FromErrorCode(result.ErrorCode);
+    }
+
     public static void WriteConfigurationResult(
         TextWriter output,
         OperationResult<RustDeskConfigurationWorkflowResult> result,
@@ -211,15 +267,103 @@ public static class CliApplication
         output.WriteLine($"Log: {logPath}");
     }
 
+    public static void WriteSetupResult(
+        TextWriter output,
+        OperationResult<RustDeskSetupWorkflowResult> result,
+        string logPath)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentException.ThrowIfNullOrWhiteSpace(logPath);
+
+        if (result.Success && result.Value is not null)
+        {
+            var configurationResult = result.Value.ConfigurationResult;
+
+            if (result.Value.InstallationPerformed)
+            {
+                output.WriteLine("[OK] Pacote homologado obtido e integridade validada.");
+                output.WriteLine("[OK] RustDesk instalado com o pacote homologado.");
+            }
+            else
+            {
+                output.WriteLine("[OK] RustDesk já estava instalado; reinstalação dispensada.");
+            }
+
+            output.WriteLine(
+                $"[OK] RustDesk encontrado: {FormatVersion(configurationResult.Installation.Version)}");
+            output.WriteLine("[OK] Configuração aplicada.");
+
+            if (configurationResult.Validation.Status is RustDeskValidationStatus.Verified)
+            {
+                output.WriteLine("[OK] Configuração verificada.");
+            }
+            else
+            {
+                output.WriteLine(
+                    "[AVISO] Configuração aplicada; confirmação completa dos campos indisponível.");
+            }
+
+            output.WriteLine();
+            output.WriteLine("Resultado: preparação concluída com sucesso.");
+            output.WriteLine($"Log: {logPath}");
+            return;
+        }
+
+        switch (result.ErrorCode)
+        {
+            case ErrorCode.DownloadFailed:
+                output.WriteLine("[ERRO] Não foi possível baixar o pacote homologado do RustDesk.");
+                break;
+
+            case ErrorCode.ChecksumMismatch:
+                output.WriteLine("[ERRO] O pacote do RustDesk foi rejeitado por falha de integridade.");
+                break;
+
+            case ErrorCode.InstallationFailed:
+                output.WriteLine("[ERRO] Não foi possível instalar ou redetectar o RustDesk.");
+                break;
+
+            case ErrorCode.ElevationFailed:
+                output.WriteLine("[ERRO] A elevação necessária para instalar o RustDesk não foi concluída.");
+                break;
+
+            case ErrorCode.ValidationFailed:
+                output.WriteLine("[OK] RustDesk instalado ou já presente.");
+                output.WriteLine("[OK] Configuração aplicada.");
+                output.WriteLine("[ERRO] Não foi possível validar o resultado.");
+                break;
+
+            case ErrorCode.ProcessFailed:
+            case ErrorCode.ConfigurationFailed:
+            case ErrorCode.PermissionDenied:
+                output.WriteLine("[OK] RustDesk instalado ou já presente.");
+                output.WriteLine("[ERRO] Não foi possível aplicar a configuração.");
+                break;
+
+            case ErrorCode.UnsupportedPlatform:
+                output.WriteLine("[ERRO] Plataforma não suportada nesta versão.");
+                break;
+
+            default:
+                output.WriteLine("[ERRO] Não foi possível concluir a preparação do RustDesk.");
+                break;
+        }
+
+        output.WriteLine();
+        output.WriteLine("Consulte o log para detalhes.");
+        output.WriteLine($"Log: {logPath}");
+    }
+
     private static bool TryParse(
         string[] arguments,
         out CliOptions options,
         out string? error)
     {
-        options = new CliOptions(arguments[0].ToLowerInvariant(), null, null);
+        options = new CliOptions(arguments[0].ToLowerInvariant(), null, null, null);
         error = null;
 
-        if (options.Command is not ("status" or "configure"))
+        if (options.Command is not ("status" or "configure" or "setup"))
         {
             error = $"Comando desconhecido: {arguments[0]}.";
             return false;
@@ -247,14 +391,33 @@ public static class CliApplication
             {
                 "--rustdesk-path" => options with { RustDeskPath = value },
                 "--log-directory" => options with { LogDirectory = value },
+                "--installer-path" => options with { InstallerPath = value },
                 _ => options
             };
 
-            if (option is not ("--rustdesk-path" or "--log-directory"))
+            if (option is not ("--rustdesk-path" or "--log-directory" or "--installer-path"))
             {
                 error = $"Opção desconhecida: {option}.";
                 return false;
             }
+        }
+
+        if (options.Command == "setup" && options.RustDeskPath is not null)
+        {
+            error = "A opção --rustdesk-path não é válida para o comando setup.";
+            return false;
+        }
+
+        if (options.Command != "setup" && options.InstallerPath is not null)
+        {
+            error = "A opção --installer-path é válida somente para o comando setup.";
+            return false;
+        }
+
+        if (options.Command == "status" && options.LogDirectory is not null)
+        {
+            error = "A opção --log-directory não é válida para o comando status.";
+            return false;
         }
 
         return true;
@@ -280,12 +443,17 @@ public static class CliApplication
         output.WriteLine(
             "  technolife-rustdesk configure [--rustdesk-path <caminho>] " +
             "[--log-directory <diretório>]");
+        output.WriteLine(
+            "  technolife-rustdesk setup [--installer-path <caminho>] " +
+            "[--log-directory <diretório>]");
         output.WriteLine();
-        output.WriteLine("Nenhuma configuração é alterada sem o comando explícito 'configure'.");
+        output.WriteLine(
+            "Somente os comandos explícitos 'configure' e 'setup' alteram o sistema.");
     }
 
     private sealed record CliOptions(
         string Command,
         string? RustDeskPath,
-        string? LogDirectory);
+        string? LogDirectory,
+        string? InstallerPath);
 }

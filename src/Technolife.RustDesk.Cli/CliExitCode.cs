@@ -8,5 +8,9 @@ public enum CliExitCode
     InvalidConfiguration = 3,
     ProcessFailed = 4,
     ValidationFailed = 5,
-    UnsupportedPlatform = 6
+    UnsupportedPlatform = 6,
+    DownloadFailed = 7,
+    ChecksumMismatch = 8,
+    InstallationFailed = 9,
+    ElevationFailed = 10
 }
