@@ -7,6 +7,6 @@ public sealed class ApplicationInfoTests
     [Fact]
     public void ExposesExpectedBetaVersion()
     {
-        Assert.Equal("0.1.0-beta.1", ApplicationInfo.Version);
+        Assert.Equal("0.1.0-beta.2", ApplicationInfo.Version);
     }
 }

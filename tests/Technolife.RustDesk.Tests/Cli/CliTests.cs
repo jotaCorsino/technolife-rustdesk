@@ -45,7 +45,7 @@ public sealed class CliTests
         var exitCode = await CliApplication.RunAsync(["--version"], output);
 
         Assert.Equal((int)CliExitCode.Success, exitCode);
-        Assert.Contains("Versão: 0.1.0-beta.1", output.ToString());
+        Assert.Contains("Versão: 0.1.0-beta.2", output.ToString());
         Assert.DoesNotContain("Uso:", output.ToString());
     }
 

@@ -202,7 +202,7 @@ Detalhamento: [RD-007.1-WINDOWS-UX.md](RD-007.1-WINDOWS-UX.md).
 
 ## Correção prioritária — RD-007.2 — Serviço e configuração Windows
 
-**Status: 🟢 Concluída localmente. Teste em máquina limpa pendente.**
+**Status: 🟢 Concluída e publicada na pre-release `v0.1.0-beta.2`.**
 
 O teste real pós-RD-007.1 revelou dois falsos pressupostos: `--silent-install` não
 garantia por si só um cliente operacional com serviço ativo, e exit code zero de
@@ -250,9 +250,9 @@ Detalhamento: [RD-007.2-WINDOWS-SERVICE-CONFIG.md](RD-007.2-WINDOWS-SERVICE-CONF
 
 ## FASE — TESTES EM CAMPO WINDOWS
 
-**Status: ⚪ Aguardando Beta 2.**
+**Status: 🟡 Em andamento com a pre-release `v0.1.0-beta.2`.**
 
-A `v0.1.0-beta.1` permanece apenas como referência técnica e não deve ser distribuída a clientes finais. Os testes em campo serão retomados com a `v0.1.0-beta.2` após a validação da RD-007.2 em uma máquina Windows limpa.
+A `v0.1.0-beta.1` permanece apenas como referência técnica e não deve ser distribuída a clientes finais. A `v0.1.0-beta.2` foi publicada exclusivamente para testes em campo; não é estável nem homologada para produção. O cenário real em uma máquina Windows limpa sem RustDesk faz parte destes testes externos.
 
 A RD-008 continua planejada e **não deve ser iniciada antes da validação da experiência Windows corrigida**.
 

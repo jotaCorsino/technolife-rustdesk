@@ -30,7 +30,7 @@ rustdesk --config "<CONFIG_STRING>"
 
 | Plataforma | Arquitetura | Status |
 |---|---|---|
-| Windows 10/11 | x64 | RD-007.2 concluída localmente; Beta 2 ainda não publicada |
+| Windows 10/11 | x64 | v0.1.0-beta.2 em PRE-RELEASE / TESTE EM CAMPO |
 | Linux Debian/Ubuntu | x64 | Planejado |
 | macOS | Intel x64 | Planejado |
 | macOS | Apple Silicon arm64 | Planejado |
@@ -40,17 +40,30 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-A `v0.1.0-beta.1` foi publicada para validação técnica, mas **não deve ser entregue a clientes finais**. As RD-007.1 e RD-007.2 corrigiram localmente a experiência gráfica e o fluxo administrativo pós-instalação; a nova experiência ainda aguarda teste em máquina limpa, versionamento e publicação em uma futura Beta 2.
+A `v0.1.0-beta.1` permanece como referência técnica histórica e **não deve ser entregue a clientes finais**. A `v0.1.0-beta.2` é uma **PRE-RELEASE destinada exclusivamente a testes em campo**; não é estável, homologada para produção nem uma release final.
 
 | Sistema | Versão | Status | Download |
 |---|---|---|---|
 | Windows 10/11 x64 | `v0.1.0-beta.1` | ⛔ Referência técnica — não usar com cliente final | [Release anterior](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
-| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 RD-007.2 concluída localmente; teste em máquina limpa pendente | Ainda não publicada |
+| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 PRE-RELEASE / TESTE EM CAMPO | [Release de testes](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.2) |
 | Linux x64 | — | ⚪ Planejado | — |
 | macOS Intel | — | ⚪ Planejado | — |
 | macOS Apple Silicon | — | ⚪ Planejado | — |
 
 O requisito de uso final no Windows é: **baixar o EXE → dar duplo clique → acompanhar a configuração em uma janela simples → concluir**, sem exigir PowerShell, parâmetros ou conhecimento técnico.
+
+- [Baixar `Technolife-RustDesk-Windows.exe`](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.2/Technolife-RustDesk-Windows.exe)
+- [Baixar checksum SHA-256](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.2/Technolife-RustDesk-Windows.exe.sha256)
+
+A Beta 2 inclui GUI para cliente final, execução por duplo clique, uma única
+confirmação UAC, instalação automática do RustDesk 1.4.9 quando ausente, criação e
+ativação do serviço `RustDesk`, configuração administrativa e validação real de ID
+Server, Relay Server e chave pública. Exit code zero de `--config` não produz mais
+sucesso quando os valores relidos divergem. A suíte possui 119 testes automatizados
+aprovados.
+
+O cenário real em uma máquina Windows limpa sem RustDesk faz parte dos testes externos
+desta pre-release.
 
 ## Infraestrutura RustDesk da Technolife
 
@@ -112,7 +125,7 @@ A primeira entrega Windows já cobre um fluxo pequeno e testável:
 - reler ID Server, Relay Server e chave pública pela CLI oficial e validar os valores;
 - gerar logs.
 
-A experiência Windows das RD-007.1 e RD-007.2 foi validada localmente por duplo clique. O próximo passo é repetir o fluxo em uma máquina Windows limpa antes de definir e publicar a `v0.1.0-beta.2`. Linux/macOS permanecem bloqueados.
+A experiência Windows das RD-007.1 e RD-007.2 foi validada localmente por duplo clique e publicada na pre-release `v0.1.0-beta.2`. O próximo passo é coletar os testes externos, incluindo o fluxo em uma máquina Windows limpa. Linux/macOS permanecem bloqueados.
 
 O planejamento completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -249,7 +262,7 @@ Technolife. Um exit code zero com qualquer valor divergente resulta em
 
 ## Estado do projeto
 
-**Fase atual:** RD-007.2 concluída localmente; teste em máquina limpa pendente antes da Beta 2.
+**Fase atual:** `v0.1.0-beta.2` publicada como PRE-RELEASE para testes em campo Windows.
 
 A `v0.1.0-beta.1` comprovou o motor técnico, mas foi reprovada como artefato para cliente leigo porque o duplo clique sem argumentos apenas exibe ajuda e encerra. Ela permanece publicada somente como referência técnica.
 
@@ -261,7 +274,7 @@ o RustDesk mostrou estado `Pronto` e o controle de serviço mostrou `Parar`, con
 que estava ativo. A área de rede permaneceu bloqueada e não foi desbloqueada nem
 alterada manualmente.
 
-O próximo artefato será a `v0.1.0-beta.2`, ainda não publicada. O cenário físico sem RustDesk será validado em uma máquina limpa antes dessa publicação; os caminhos de ausência, criação/início do serviço, instalação, validação divergente e falhas permanecem cobertos por testes automatizados.
+A `v0.1.0-beta.2` é o artefato atual para testes externos. O cenário físico sem RustDesk será validado por usuários desta pre-release; os caminhos de ausência, criação/início do serviço, instalação, validação divergente e falhas permanecem cobertos por testes automatizados.
 
 RD-008 (Linux Debian/Ubuntu) permanece bloqueada até a Beta 2 passar por teste em campo Windows.
 
@@ -285,7 +298,7 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | **—** | **CORREÇÃO UX WINDOWS** | **Adequar o executável ao uso por cliente leigo antes do teste em campo** | **🟢 Concluída localmente** |
 | RD-007.1 | Windows — experiência do cliente | Duplo clique executa setup automaticamente em GUI mínima, sem terminal ou parâmetros | 🟢 Concluída localmente |
 | RD-007.2 | Windows — serviço e configuração | Garante serviço ativo, elevação única, configuração administrativa e validação real por `--option` | 🟢 Concluída localmente |
-| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Validar em Windows limpo e somente depois distribuir v0.1.0-beta.2** | **⚪ Aguardando teste limpo** |
+| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Validar a pre-release v0.1.0-beta.2 em máquinas reais, incluindo Windows limpo** | **🟡 Em andamento** |
 | **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejada** |
 | RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejada |
 | RD-009 | Linux — expansão | Adicionar outras distribuições e formatos conforme demanda real | ⚪ Futuro |
