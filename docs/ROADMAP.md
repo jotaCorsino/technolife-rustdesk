@@ -150,14 +150,49 @@ Authenticode. A pre-release pública `v0.1.0-beta.1` disponibiliza o executável
 checksum para testes em campo. Como Windows Sandbox não está instalado na máquina de
 desenvolvimento, o teste em um Windows limpo permanece pendente.
 
+## Correção prioritária — RD-007.1 — Experiência Windows para cliente final
+
+**Status: 🟡 Prioridade atual.**
+
+A `v0.1.0-beta.1` validou o motor técnico, porém foi reprovada para uso por cliente final: ao abrir o executável por duplo clique, sem argumentos, a aplicação mostra ajuda em terminal e encerra. Isso contraria o requisito central do produto.
+
+**Objetivo obrigatório:** o cliente deve baixar um único EXE, dar duplo clique e acompanhar todo o processo sem PowerShell, parâmetros ou conhecimento técnico.
+
+Fluxo alvo:
+
+```text
+duplo clique
+→ janela Technolife
+→ detectar RustDesk
+→ instalar se necessário
+→ aplicar configuração Technolife
+→ validar
+→ mostrar sucesso ou erro
+→ concluir
+```
+
+Entregas enxutas:
+
+- execução sem argumentos inicia automaticamente o fluxo equivalente a `setup`;
+- GUI Windows mínima com estados de progresso, sucesso e erro;
+- nenhuma janela de terminal no fluxo normal do cliente;
+- UAC somente quando a instalação do RustDesk exigir elevação;
+- reutilização integral do Core, detector, download, checksum, instalador, configurador, validator e logger existentes;
+- comandos `status`, `configure` e `setup` preservados como interface técnica;
+- testes para RustDesk presente/ausente, UAC recusado, falha de internet e execução repetida;
+- publicação de `v0.1.0-beta.2` como nova pre-release para teste em campo.
+
+A RD-007.1 **não** deve redesenhar o Core nem reimplementar RD-003 a RD-006.
+
+Detalhamento: [RD-007.1-WINDOWS-UX.md](RD-007.1-WINDOWS-UX.md).
+
 ## FASE — TESTES EM CAMPO WINDOWS
 
-**Status: 🟡 Em andamento.**
+**Status: ⚪ Aguardando Beta 2.**
 
-Objetivo: distribuir `v0.1.0-beta.1` em máquinas reais de clientes e registrar
-problemas antes da expansão multiplataforma.
+A `v0.1.0-beta.1` permanece apenas como referência técnica e não deve ser distribuída a clientes finais. Os testes em campo serão retomados com a `v0.1.0-beta.2` após a conclusão da RD-007.1.
 
-A RD-008 continua planejada e não foi iniciada.
+A RD-008 continua planejada e **não deve ser iniciada antes da validação da experiência Windows corrigida**.
 
 ## Fase 2 — Linux
 
@@ -216,9 +251,9 @@ Entregas:
 
 ## Fase 4 — Experiência e distribuição
 
-### RD-012 — Interface gráfica
+### RD-012 — Interface gráfica avançada
 
-Objetivo: adicionar interface simples sem mover lógica para a UI.
+Objetivo: evoluir a interface mínima obrigatória introduzida na RD-007.1 sem mover lógica para a UI.
 
 Exemplo de estados:
 

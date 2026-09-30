@@ -30,7 +30,7 @@ rustdesk --config "<CONFIG_STRING>"
 
 | Plataforma | Arquitetura | Status |
 |---|---|---|
-| Windows 10/11 | x64 | Build homologado localmente |
+| Windows 10/11 | x64 | Correção da experiência do cliente em andamento |
 | Linux Debian/Ubuntu | x64 | Planejado |
 | macOS | Intel x64 | Planejado |
 | macOS | Apple Silicon arm64 | Planejado |
@@ -40,16 +40,17 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-A versão Windows está atualmente em fase de testes em campo.
+A `v0.1.0-beta.1` foi publicada para validação técnica, mas **não deve ser entregue a clientes finais**. O teste por duplo clique mostrou que a experiência atual ainda é orientada à CLI: sem argumentos, o programa exibe ajuda e encerra. A prioridade atual é a **RD-007.1**, que corrigirá o fluxo para usuário leigo antes de uma nova Beta.
 
 | Sistema | Versão | Status | Download |
 |---|---|---|---|
-| Windows 10/11 x64 | `v0.1.0-beta.1` | 🧪 Beta — teste em campo | [Baixar EXE](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.1/Technolife-RustDesk-Windows.exe) · [SHA-256](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.1/Technolife-RustDesk-Windows.exe.sha256) · [GitHub Release](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
+| Windows 10/11 x64 | `v0.1.0-beta.1` | ⛔ Referência técnica — não usar com cliente final | [Release anterior](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
+| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 Em desenvolvimento — RD-007.1 | Ainda não publicada |
 | Linux x64 | — | ⚪ Planejado | — |
 | macOS Intel | — | ⚪ Planejado | — |
 | macOS Apple Silicon | — | ⚪ Planejado | — |
 
-Os links oficiais apontam para a pre-release publicada na área **Releases** deste repositório.
+O requisito de uso final no Windows é: **baixar o EXE → dar duplo clique → acompanhar a configuração em uma janela simples → concluir**, sem exigir PowerShell, parâmetros ou conhecimento técnico.
 
 ## Infraestrutura RustDesk da Technolife
 
@@ -94,7 +95,8 @@ Responsabilidades principais:
 
 - **Core**: fluxo de configuração, contratos, validação, logging e regras independentes do sistema operacional.
 - **Platforms**: descoberta, instalação, caminhos, permissões e execução específicos de Windows, Linux e macOS.
-- **CLI**: primeira interface do produto. Uma interface gráfica poderá ser adicionada posteriormente sem alterar o núcleo.
+- **Windows UI**: interface mínima obrigatória para o cliente final; duplo clique deve iniciar o fluxo completo sem exigir terminal ou parâmetros.
+- **CLI**: interface técnica secundária para suporte, diagnóstico e automação, reutilizando o mesmo Core.
 
 Mais detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -108,7 +110,7 @@ A primeira entrega Windows já cobre um fluxo pequeno e testável:
 - validar;
 - gerar logs.
 
-Os próximos passos são a publicação Windows, os builds multiplataforma, a interface gráfica e as automações de release.
+O próximo passo é corrigir a experiência Windows para cliente final na RD-007.1 e publicar a `v0.1.0-beta.2`. Linux/macOS ficam bloqueados até essa correção passar por teste real de duplo clique.
 
 O planejamento completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -156,9 +158,13 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 - [docs/SERVER-CONFIG.md](docs/SERVER-CONFIG.md) — configuração pública do servidor.
 - [docs/SECURITY.md](docs/SECURITY.md) — regras de segurança e distribuição.
 
-## CLI Windows
+## Interface Windows e CLI técnica
 
-A CLI não altera a configuração quando executada sem argumentos. As operações disponíveis são explícitas:
+A `v0.1.0-beta.1` ainda inicia como CLI e, sem argumentos, mostra ajuda. Esse comportamento foi reprovado para uso por clientes.
+
+A RD-007.1 alterará o executável Windows para que **a execução normal por duplo clique, sem argumentos, abra uma interface gráfica mínima e execute automaticamente o fluxo completo de setup**. A CLI permanecerá disponível apenas para suporte técnico e diagnóstico.
+
+Comandos técnicos existentes:
 
 ```powershell
 dotnet run --project src/Technolife.RustDesk.Cli -- status
@@ -230,15 +236,13 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 
 ## Estado do projeto
 
-**Fase atual:** testes em campo da Beta Windows x64.
+**Fase atual:** correção da experiência Windows para cliente final — RD-007.1.
 
-O objetivo atual é distribuir a `v0.1.0-beta.1` em máquinas reais de clientes e
-registrar problemas antes da expansão multiplataforma.
+A `v0.1.0-beta.1` comprovou o motor técnico, mas foi reprovada como artefato para cliente leigo porque o duplo clique sem argumentos apenas exibe ajuda e encerra. Ela permanece publicada somente como referência técnica.
 
-Próximo passo planejado, ainda não iniciado: RD-008, suporte inicial a Linux
-Debian/Ubuntu x64.
+O próximo artefato será a `v0.1.0-beta.2`, com fluxo obrigatório por duplo clique: interface Windows mínima → detecção → instalação quando necessária → configuração → validação → mensagem final.
 
-A Beta Windows possui pre-release pública, mas ainda não possui assinatura Authenticode.
+RD-008 (Linux Debian/Ubuntu) permanece bloqueada até a Beta 2 passar por teste em campo Windows.
 
 
 ## Acompanhamento do projeto
@@ -256,8 +260,10 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | RD-005 | Windows | Implementar validação do fluxo, mensagens de erro, códigos de saída e logs | 🟢 Concluído |
 | RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟢 Concluído |
 | RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | 🟢 Concluído |
-| **—** | **MARCO — WINDOWS HOMOLOGADO** | **Primeiro sistema operacional com fluxo completo de instalação/configuração** | **🟢 Concluído localmente** |
-| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Distribuir v0.1.0-beta.1 em máquinas reais de clientes e registrar problemas antes da expansão multiplataforma** | **🟡 Em andamento** |
+| **—** | **MARCO — MOTOR WINDOWS HOMOLOGADO** | **Motor de detecção, instalação, configuração, validação e logs concluído** | **🟢 Concluído localmente** |
+| **—** | **CORREÇÃO UX WINDOWS** | **Adequar o executável ao uso por cliente leigo antes do teste em campo** | **🟡 Atual** |
+| RD-007.1 | Windows — experiência do cliente | Duplo clique executa setup automaticamente em GUI mínima, sem terminal ou parâmetros | 🟡 Em planejamento/implementação |
+| **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Distribuir v0.1.0-beta.2 em máquinas reais somente após concluir RD-007.1** | **⚪ Aguardando Beta 2** |
 | **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejada** |
 | RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejada |
 | RD-009 | Linux — expansão | Adicionar outras distribuições e formatos conforme demanda real | ⚪ Futuro |
@@ -267,7 +273,7 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | RD-011 | macOS Apple Silicon | Implementar e homologar suporte arm64 | ⚪ Planejado |
 | **—** | **MARCO — macOS HOMOLOGADO** | **Disponibilizar builds para Intel e Apple Silicon** | **⚪ Planejado** |
 | **—** | **FASE 4 — EXPERIÊNCIA E AUTOMAÇÃO** | **Transformar os builds funcionais em um produto simples de distribuir e utilizar** | **⚪ Planejado** |
-| RD-012 | Interface | Criar interface gráfica usando o mesmo Core já validado | ⚪ Planejado |
+| RD-012 | Interface avançada | Evoluir a GUI mínima já exigida no Windows para uma experiência mais completa, sem mover regras do Core | ⚪ Planejado |
 | RD-013 | Automação | Configurar GitHub Actions para build e testes multiplataforma | ⚪ Planejado |
 | RD-014 | Distribuição | Padronizar releases, downloads, checksums e matriz de compatibilidade | ⚪ Planejado |
 | **—** | **FASE 5 — RELEASE ESTÁVEL** | **Homologação final do produto multiplataforma** | **⚪ Planejado** |

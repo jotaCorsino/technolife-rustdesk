@@ -9,7 +9,7 @@ O Technolife RustDesk Configurator será uma aplicação multiplataforma com nú
                                   │
                        ┌──────────┴──────────┐
                        │                     │
-                      CLI                 GUI futura
+                 CLI técnica           Windows UI
                        │                     │
                        └──────────┬──────────┘
                                   │
@@ -227,11 +227,11 @@ No Windows, o diretório padrão é:
 
 A CLI aceita `--log-directory` para testes e diagnósticos controlados sem alterar esse padrão de produção.
 
-## CLI e códigos de saída
+## Interface Windows, CLI técnica e códigos de saída
 
-A CLI expõe `status` para detecção sem alteração, `configure` para configurar uma
-instalação existente e `setup` para instalar quando necessário e então configurar.
-Sem comando, apresenta somente ajuda.
+A experiência principal do cliente Windows é uma interface gráfica mínima. A partir da RD-007.1, executar o artefato normalmente por duplo clique, sem argumentos, deve iniciar o fluxo completo equivalente a `setup` e apresentar progresso, sucesso ou erro sem exibir terminal.
+
+A CLI permanece como interface técnica secundária. Ela expõe `status` para detecção sem alteração, `configure` para configurar uma instalação existente e `setup` para instalar quando necessário e então configurar. Esses comandos continuam úteis para suporte, diagnóstico, testes e automação.
 
 | Código | Significado |
 |---:|---|
@@ -260,9 +260,21 @@ Exemplos:
 
 ## Interface
 
-A CLI é deliberadamente a primeira interface para reduzir escopo e facilitar testes.
+A CLI foi utilizada para construir e validar o motor técnico, mas não representa a experiência final do cliente Windows.
 
-Uma GUI futura deve consumir o mesmo Core, sem copiar regras de negócio.
+A interface mínima Windows é requisito do produto:
+
+```text
+duplo clique
+→ GUI Technolife
+→ setup automático
+→ progresso
+→ sucesso/erro
+```
+
+A GUI deve ser fina: apenas iniciar e observar os workflows existentes, traduzir estados para mensagens simples e oferecer ações básicas como concluir ou tentar novamente. Nenhuma regra de detecção, instalação, download, checksum, configuração ou validação deve ser copiada para a UI.
+
+A CLI continua disponível como ferramenta técnica secundária. Uma interface avançada poderá ser desenvolvida posteriormente sobre o mesmo Core.
 
 ## Distribuição
 
