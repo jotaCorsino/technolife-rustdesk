@@ -65,6 +65,15 @@ Responsável por:
 - detalhes de serviço/processo;
 - publicação `win-x64`.
 
+Na detecção inicial, os caminhos candidatos são avaliados nesta ordem:
+
+1. `C:\Program Files\RustDesk\RustDesk.exe`;
+2. `C:\Program Files (x86)\RustDesk\RustDesk.exe`.
+
+O primeiro caminho é o diretório padrão indicado pela [documentação oficial do cliente](https://rustdesk.com/docs/en/client/). O segundo contempla a seleção de Program Files para processos de 32 bits observada na [implementação oficial do RustDesk](https://github.com/rustdesk/rustdesk/blob/master/src/platform/windows.rs).
+
+O acesso ao arquivo é isolado por `IFileProbe`, permitindo testes sem disco real. A versão é lida dos metadados do executável sem iniciá-lo; falhas nessa leitura não invalidam uma instalação encontrada. Até existir inspeção confiável do binário, sua arquitetura é representada como `Unknown`.
+
 ### Linux
 
 Primeiro alvo: Debian/Ubuntu x64.

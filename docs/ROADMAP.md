@@ -51,6 +51,8 @@ Entregas:
 
 ### RD-003 — Detector Windows
 
+**Status: concluída.**
+
 Objetivo: localizar instalações existentes do RustDesk no Windows.
 
 Deve considerar:
