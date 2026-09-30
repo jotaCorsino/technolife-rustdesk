@@ -152,7 +152,7 @@ desenvolvimento, o teste em um Windows limpo permanece pendente.
 
 ## Correção prioritária — RD-007.1 — Experiência Windows para cliente final
 
-**Status: 🟡 Prioridade atual.**
+**Status: 🟢 Concluída localmente.**
 
 A `v0.1.0-beta.1` validou o motor técnico, porém foi reprovada para uso por cliente final: ao abrir o executável por duplo clique, sem argumentos, a aplicação mostra ajuda em terminal e encerra. Isso contraria o requisito central do produto.
 
@@ -180,9 +180,21 @@ Entregas enxutas:
 - reutilização integral do Core, detector, download, checksum, instalador, configurador, validator e logger existentes;
 - comandos `status`, `configure` e `setup` preservados como interface técnica;
 - testes para RustDesk presente/ausente, UAC recusado, falha de internet e execução repetida;
-- publicação de `v0.1.0-beta.2` como nova pre-release para teste em campo.
+- preparação do artefato gráfico candidato à futura `v0.1.0-beta.2`.
 
 A RD-007.1 **não** deve redesenhar o Core nem reimplementar RD-003 a RD-006.
+
+Implementação concluída com o projeto WinForms `Technolife.RustDesk.Windows`, publicado
+como `WinExe` self-contained e single-file. A janela inicia o setup automaticamente,
+observa o progresso opcional do Core e apresenta sucesso persistente ou erro com
+`Tentar novamente` e `Fechar`. A CLI técnica permanece separada e funcional.
+
+O teste real pelo Explorer foi aprovado com RustDesk 1.4.9 existente: nenhuma janela
+de terminal foi aberta, não houve reinstalação, a configuração terminou com exit code
+zero, a validação retornou `Applied` e `Concluir` fechou a aplicação. O cenário físico
+sem RustDesk não foi executado nesta máquina para evitar uma desinstalação destrutiva;
+ele permanece obrigatório em máquina limpa antes da Beta 2. A Beta 2 não foi publicada
+nesta tarefa.
 
 Detalhamento: [RD-007.1-WINDOWS-UX.md](RD-007.1-WINDOWS-UX.md).
 

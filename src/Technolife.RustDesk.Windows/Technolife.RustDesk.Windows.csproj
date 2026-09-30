@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Technolife.RustDesk.Core\Technolife.RustDesk.Core.csproj" />
+    <ProjectReference Include="..\Technolife.RustDesk.Platforms\Technolife.RustDesk.Platforms.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Technolife-RustDesk-Windows</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+</Project>

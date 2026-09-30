@@ -30,7 +30,7 @@ rustdesk --config "<CONFIG_STRING>"
 
 | Plataforma | Arquitetura | Status |
 |---|---|---|
-| Windows 10/11 | x64 | Correção da experiência do cliente em andamento |
+| Windows 10/11 | x64 | RD-007.1 concluída localmente; Beta 2 ainda não publicada |
 | Linux Debian/Ubuntu | x64 | Planejado |
 | macOS | Intel x64 | Planejado |
 | macOS | Apple Silicon arm64 | Planejado |
@@ -40,12 +40,12 @@ O projeto será desenvolvido como **um produto, um repositório e uma base de c�
 
 ## Downloads
 
-A `v0.1.0-beta.1` foi publicada para validação técnica, mas **não deve ser entregue a clientes finais**. O teste por duplo clique mostrou que a experiência atual ainda é orientada à CLI: sem argumentos, o programa exibe ajuda e encerra. A prioridade atual é a **RD-007.1**, que corrigirá o fluxo para usuário leigo antes de uma nova Beta.
+A `v0.1.0-beta.1` foi publicada para validação técnica, mas **não deve ser entregue a clientes finais**. A RD-007.1 corrigiu localmente o fluxo para usuário leigo; a nova experiência ainda aguarda versionamento e publicação em uma futura Beta 2.
 
 | Sistema | Versão | Status | Download |
 |---|---|---|---|
 | Windows 10/11 x64 | `v0.1.0-beta.1` | ⛔ Referência técnica — não usar com cliente final | [Release anterior](https://github.com/jotaCorsino/technolife-rustdesk/releases/tag/v0.1.0-beta.1) |
-| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 Em desenvolvimento — RD-007.1 | Ainda não publicada |
+| Windows 10/11 x64 | `v0.1.0-beta.2` | 🟡 RD-007.1 concluída localmente | Ainda não publicada |
 | Linux x64 | — | ⚪ Planejado | — |
 | macOS Intel | — | ⚪ Planejado | — |
 | macOS Apple Silicon | — | ⚪ Planejado | — |
@@ -81,6 +81,7 @@ A implementação inicial será baseada em .NET 8, com núcleo compartilhado e a
 src/
 ├── Technolife.RustDesk.Core/
 ├── Technolife.RustDesk.Cli/
+├── Technolife.RustDesk.Windows/
 └── Technolife.RustDesk.Platforms/
     ├── Windows/
     ├── Linux/
@@ -110,7 +111,7 @@ A primeira entrega Windows já cobre um fluxo pequeno e testável:
 - validar;
 - gerar logs.
 
-O próximo passo é corrigir a experiência Windows para cliente final na RD-007.1 e publicar a `v0.1.0-beta.2`. Linux/macOS ficam bloqueados até essa correção passar por teste real de duplo clique.
+A experiência Windows da RD-007.1 foi validada localmente por duplo clique. O próximo passo, fora desta tarefa, é definir e publicar a `v0.1.0-beta.2` para testes em campo. Linux/macOS permanecem bloqueados.
 
 O planejamento completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -162,7 +163,7 @@ O configurador deverá detectar e orientar o usuário quando uma permissão exig
 
 A `v0.1.0-beta.1` ainda inicia como CLI e, sem argumentos, mostra ajuda. Esse comportamento foi reprovado para uso por clientes.
 
-A RD-007.1 alterará o executável Windows para que **a execução normal por duplo clique, sem argumentos, abra uma interface gráfica mínima e execute automaticamente o fluxo completo de setup**. A CLI permanecerá disponível apenas para suporte técnico e diagnóstico.
+A RD-007.1 criou um executável Windows separado que **abre uma interface gráfica mínima e executa automaticamente o fluxo completo de setup por duplo clique, sem argumentos e sem terminal**. A CLI permanece disponível apenas para suporte técnico e diagnóstico.
 
 Comandos técnicos existentes:
 
@@ -236,11 +237,13 @@ O fluxo considera a configuração como `Applied` quando `--config` termina com 
 
 ## Estado do projeto
 
-**Fase atual:** correção da experiência Windows para cliente final — RD-007.1.
+**Fase atual:** RD-007.1 concluída localmente; Beta 2 aguardando etapa própria de publicação.
 
 A `v0.1.0-beta.1` comprovou o motor técnico, mas foi reprovada como artefato para cliente leigo porque o duplo clique sem argumentos apenas exibe ajuda e encerra. Ela permanece publicada somente como referência técnica.
 
-O próximo artefato será a `v0.1.0-beta.2`, com fluxo obrigatório por duplo clique: interface Windows mínima → detecção → instalação quando necessária → configuração → validação → mensagem final.
+O fluxo corrigido foi testado pelo Explorer com RustDesk 1.4.9 já instalado: a GUI abriu sem terminal, iniciou automaticamente, não reinstalou o RustDesk, aplicou a configuração, validou o resultado e permaneceu na tela de sucesso até o clique em `Concluir`.
+
+O próximo artefato será a `v0.1.0-beta.2`, ainda não publicada. O cenário físico sem RustDesk será validado em uma máquina limpa antes dessa publicação; os caminhos de ausência, instalação e falhas permanecem cobertos por testes automatizados.
 
 RD-008 (Linux Debian/Ubuntu) permanece bloqueada até a Beta 2 passar por teste em campo Windows.
 
@@ -261,8 +264,8 @@ Esta tabela resume o desenvolvimento do projeto do início até a primeira vers�
 | RD-006 | Windows | Baixar, validar e instalar automaticamente uma versão homologada do RustDesk quando necessário | 🟢 Concluído |
 | RD-007 | Windows | Gerar, testar e homologar o primeiro executável Windows x64 | 🟢 Concluído |
 | **—** | **MARCO — MOTOR WINDOWS HOMOLOGADO** | **Motor de detecção, instalação, configuração, validação e logs concluído** | **🟢 Concluído localmente** |
-| **—** | **CORREÇÃO UX WINDOWS** | **Adequar o executável ao uso por cliente leigo antes do teste em campo** | **🟡 Atual** |
-| RD-007.1 | Windows — experiência do cliente | Duplo clique executa setup automaticamente em GUI mínima, sem terminal ou parâmetros | 🟡 Em planejamento/implementação |
+| **—** | **CORREÇÃO UX WINDOWS** | **Adequar o executável ao uso por cliente leigo antes do teste em campo** | **🟢 Concluída localmente** |
+| RD-007.1 | Windows — experiência do cliente | Duplo clique executa setup automaticamente em GUI mínima, sem terminal ou parâmetros | 🟢 Concluída localmente |
 | **—** | **FASE — TESTES EM CAMPO WINDOWS** | **Distribuir v0.1.0-beta.2 em máquinas reais somente após concluir RD-007.1** | **⚪ Aguardando Beta 2** |
 | **—** | **FASE 2 — LINUX** | **Reutilizar o Core validado e adaptar instalação/configuração ao ecossistema Linux** | **⚪ Planejada** |
 | RD-008 | Linux Debian/Ubuntu | Implementar e homologar suporte inicial x64 | ⚪ Planejada |

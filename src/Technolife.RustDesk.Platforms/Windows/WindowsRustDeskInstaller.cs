@@ -54,7 +54,8 @@ public sealed class WindowsRustDeskInstaller : IRustDeskInstaller
     }
 
     public async Task<OperationResult> InstallAsync(
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<SetupProgress>? progress = null)
     {
         var platform = _platformEnvironment.Current;
 
@@ -86,6 +87,7 @@ public sealed class WindowsRustDeskInstaller : IRustDeskInstaller
             _logger.Info(
                 $"Homologated RustDesk package selected: {_manifest.Version} " +
                 $"{_manifest.Platform} {_manifest.Architecture}.");
+            progress?.Report(new SetupProgress(SetupProgressStage.Downloading));
 
             var acquisitionResult = await AcquirePackageAsync(
                     packagePath,
@@ -116,6 +118,7 @@ public sealed class WindowsRustDeskInstaller : IRustDeskInstaller
 
             _logger.Info("RustDesk package SHA-256 checksum validated.");
             _logger.Info("Elevated silent installation started.");
+            progress?.Report(new SetupProgress(SetupProgressStage.Installing));
 
             var processRequest = new ProcessRequest(
                 packagePath,

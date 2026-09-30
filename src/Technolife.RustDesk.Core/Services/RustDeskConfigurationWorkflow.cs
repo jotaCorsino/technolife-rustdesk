@@ -59,7 +59,8 @@ public sealed class RustDeskConfigurationWorkflow
         ExecuteDetectedAsync(
             RustDeskInstallation installation,
             RustDeskConfiguration configuration,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            IProgress<SetupProgress>? progress = null)
     {
         ArgumentNullException.ThrowIfNull(installation);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -69,7 +70,8 @@ public sealed class RustDeskConfigurationWorkflow
             return await ExecuteDetectedCoreAsync(
                     installation,
                     configuration,
-                    cancellationToken)
+                    cancellationToken,
+                    progress)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -121,7 +123,8 @@ public sealed class RustDeskConfigurationWorkflow
         return await ExecuteDetectedCoreAsync(
                 installation,
                 configuration,
-                cancellationToken)
+                cancellationToken,
+                progress: null)
             .ConfigureAwait(false);
     }
 
@@ -129,7 +132,8 @@ public sealed class RustDeskConfigurationWorkflow
         ExecuteDetectedCoreAsync(
             RustDeskInstallation installation,
             RustDeskConfiguration configuration,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<SetupProgress>? progress)
     {
         if (!installation.Found || string.IsNullOrWhiteSpace(installation.ExecutablePath))
         {
@@ -142,6 +146,7 @@ public sealed class RustDeskConfigurationWorkflow
             $"RustDesk {installation.Version?.ToString() ?? "unknown version"} found at " +
             $"{installation.ExecutablePath}.");
         _logger.Info("Configuration started.");
+        progress?.Report(new SetupProgress(SetupProgressStage.Configuring));
 
         var configurationResult = await _configurator
             .ConfigureAsync(installation, configuration, cancellationToken)
@@ -158,6 +163,7 @@ public sealed class RustDeskConfigurationWorkflow
 
         _logger.Info("Configuration process completed with exit code 0.");
         _logger.Info("Validation started.");
+        progress?.Report(new SetupProgress(SetupProgressStage.Validating));
 
         var validationResult = await _validator
             .ValidateAsync(installation, configuration, cancellationToken)

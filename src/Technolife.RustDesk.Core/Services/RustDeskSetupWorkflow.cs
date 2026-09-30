@@ -55,13 +55,14 @@ public sealed class RustDeskSetupWorkflow
 
     public async Task<OperationResult<RustDeskSetupWorkflowResult>> ExecuteAsync(
         RustDeskConfiguration configuration,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<SetupProgress>? progress = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
         try
         {
-            return await ExecuteCoreAsync(configuration, cancellationToken)
+            return await ExecuteCoreAsync(configuration, cancellationToken, progress)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -75,6 +76,7 @@ public sealed class RustDeskSetupWorkflow
                 configuration.ExportedConfiguration);
 
             _logger.Error("The setup workflow failed unexpectedly.", technicalDetails);
+            progress?.Report(new SetupProgress(SetupProgressStage.Failed));
 
             return OperationResult<RustDeskSetupWorkflowResult>.Failed(
                 ErrorCode.UnexpectedFailure,
@@ -85,13 +87,15 @@ public sealed class RustDeskSetupWorkflow
 
     private async Task<OperationResult<RustDeskSetupWorkflowResult>> ExecuteCoreAsync(
         RustDeskConfiguration configuration,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<SetupProgress>? progress)
     {
         var platform = _platformEnvironment.Current;
 
         _logger.Info($"{ApplicationInfo.Name} {ApplicationInfo.Version}");
         _logger.Info($"Platform: {platform.Kind} {platform.Architecture}");
         _logger.Info("Detection started.");
+        progress?.Report(new SetupProgress(SetupProgressStage.Checking));
 
         var detection = await _detector
             .DetectAsync(cancellationToken)
@@ -105,7 +109,8 @@ public sealed class RustDeskSetupWorkflow
                     : detection.ErrorCode,
                 "RustDesk detection failed.",
                 detection.TechnicalDetails ?? detection.Message,
-                configuration);
+                configuration,
+                progress);
         }
 
         var installation = detection.Value;
@@ -121,7 +126,7 @@ public sealed class RustDeskSetupWorkflow
             _logger.Info("Installation started.");
 
             var installationResult = await _installer
-                .InstallAsync(cancellationToken)
+                .InstallAsync(cancellationToken, progress)
                 .ConfigureAwait(false);
 
             if (!installationResult.Success)
@@ -130,12 +135,14 @@ public sealed class RustDeskSetupWorkflow
                     installationResult.ErrorCode,
                     "RustDesk installation failed.",
                     installationResult.TechnicalDetails ?? installationResult.Message,
-                    configuration);
+                    configuration,
+                    progress);
             }
 
             installationPerformed = true;
             _logger.Info("Installation process completed successfully.");
             _logger.Info("Redetection started.");
+            progress?.Report(new SetupProgress(SetupProgressStage.Checking));
 
             var redetection = await RedetectAsync(cancellationToken).ConfigureAwait(false);
 
@@ -147,7 +154,8 @@ public sealed class RustDeskSetupWorkflow
                         : redetection.ErrorCode,
                     "RustDesk redetection failed after installation.",
                     redetection.TechnicalDetails ?? redetection.Message,
-                    configuration);
+                    configuration,
+                    progress);
             }
 
             installation = redetection.Value;
@@ -158,18 +166,25 @@ public sealed class RustDeskSetupWorkflow
                     ErrorCode.InstallationFailed,
                     "RustDesk was not found after the installation completed.",
                     "All post-installation detection attempts returned not found.",
-                    configuration);
+                    configuration,
+                    progress);
             }
 
             _logger.Info("RustDesk was detected after installation.");
         }
 
         var configurationResult = await _configurationWorkflow
-            .ExecuteDetectedAsync(installation, configuration, cancellationToken)
+            .ExecuteDetectedAsync(
+                installation,
+                configuration,
+                cancellationToken,
+                progress)
             .ConfigureAwait(false);
 
         if (!configurationResult.Success || configurationResult.Value is null)
         {
+            progress?.Report(new SetupProgress(SetupProgressStage.Failed));
+
             return OperationResult<RustDeskSetupWorkflowResult>.Failed(
                 configurationResult.ErrorCode is ErrorCode.None
                     ? ErrorCode.UnexpectedFailure
@@ -181,6 +196,7 @@ public sealed class RustDeskSetupWorkflow
         }
 
         _logger.Info("Setup workflow completed successfully.");
+        progress?.Report(new SetupProgress(SetupProgressStage.Completed));
 
         return OperationResult<RustDeskSetupWorkflowResult>.Succeeded(
             new RustDeskSetupWorkflowResult(
@@ -221,13 +237,15 @@ public sealed class RustDeskSetupWorkflow
         ErrorCode errorCode,
         string message,
         string? technicalDetails,
-        RustDeskConfiguration configuration)
+        RustDeskConfiguration configuration,
+        IProgress<SetupProgress>? progress)
     {
         var safeDetails = Redact(
             technicalDetails,
             configuration.ExportedConfiguration);
 
         _logger.Error(message, safeDetails);
+        progress?.Report(new SetupProgress(SetupProgressStage.Failed));
 
         return OperationResult<RustDeskSetupWorkflowResult>.Failed(
             errorCode is ErrorCode.None ? ErrorCode.UnexpectedFailure : errorCode,

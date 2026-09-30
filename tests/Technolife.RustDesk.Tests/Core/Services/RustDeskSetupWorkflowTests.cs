@@ -27,6 +27,31 @@ public sealed class RustDeskSetupWorkflowTests
     }
 
     [Fact]
+    public async Task ReportsConfigurationProgressWithoutInstallationWhenRustDeskExists()
+    {
+        var installer = new FakeInstaller();
+        var workflow = CreateWorkflow(
+            new SequenceDetector(Found()),
+            installer,
+            new FakeConfigurator(),
+            new FakeValidator());
+        var progress = new RecordingProgress();
+
+        var result = await workflow.ExecuteAsync(Configuration(), progress: progress);
+
+        Assert.True(result.Success);
+        Assert.Equal(0, installer.CallCount);
+        Assert.Equal(
+            [
+                SetupProgressStage.Checking,
+                SetupProgressStage.Configuring,
+                SetupProgressStage.Validating,
+                SetupProgressStage.Completed
+            ],
+            progress.Stages);
+    }
+
+    [Fact]
     public async Task InstallsRedetectsConfiguresAndValidatesInOrder()
     {
         var detector = new SequenceDetector(NotFound(), Found());
@@ -44,6 +69,32 @@ public sealed class RustDeskSetupWorkflowTests
         Assert.Equal(1, installer.CallCount);
         Assert.Equal(1, configurator.CallCount);
         Assert.Equal(1, validator.CallCount);
+    }
+
+    [Fact]
+    public async Task ReportsInstallationAndConfigurationProgressInOrder()
+    {
+        var workflow = CreateWorkflow(
+            new SequenceDetector(NotFound(), Found()),
+            new FakeInstaller(),
+            new FakeConfigurator(),
+            new FakeValidator());
+        var progress = new RecordingProgress();
+
+        var result = await workflow.ExecuteAsync(Configuration(), progress: progress);
+
+        Assert.True(result.Success);
+        Assert.Equal(
+            [
+                SetupProgressStage.Checking,
+                SetupProgressStage.Downloading,
+                SetupProgressStage.Installing,
+                SetupProgressStage.Checking,
+                SetupProgressStage.Configuring,
+                SetupProgressStage.Validating,
+                SetupProgressStage.Completed
+            ],
+            progress.Stages);
     }
 
     [Theory]
@@ -202,9 +253,12 @@ public sealed class RustDeskSetupWorkflowTests
         public int CallCount { get; private set; }
 
         public Task<OperationResult> InstallAsync(
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            IProgress<SetupProgress>? progress = null)
         {
             CallCount++;
+            progress?.Report(new SetupProgress(SetupProgressStage.Downloading));
+            progress?.Report(new SetupProgress(SetupProgressStage.Installing));
             return Task.FromResult(Result);
         }
     }
@@ -255,5 +309,12 @@ public sealed class RustDeskSetupWorkflowTests
         public void Info(string message) { }
         public void Warning(string message) { }
         public void Error(string message, string? technicalDetails = null) { }
+    }
+
+    private sealed class RecordingProgress : IProgress<SetupProgress>
+    {
+        public List<SetupProgressStage> Stages { get; } = [];
+
+        public void Report(SetupProgress value) => Stages.Add(value.Stage);
     }
 }

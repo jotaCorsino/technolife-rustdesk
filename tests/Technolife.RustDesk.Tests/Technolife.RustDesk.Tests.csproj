@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Technolife.RustDesk.Cli\Technolife.RustDesk.Cli.csproj" />
     <ProjectReference Include="..\..\src\Technolife.RustDesk.Core\Technolife.RustDesk.Core.csproj" />
     <ProjectReference Include="..\..\src\Technolife.RustDesk.Platforms\Technolife.RustDesk.Platforms.csproj" />
+    <ProjectReference Include="..\..\src\Technolife.RustDesk.Windows\Technolife.RustDesk.Windows.csproj" />
   </ItemGroup>
 
 </Project>

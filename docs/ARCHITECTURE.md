@@ -26,6 +26,13 @@ O Technolife RustDesk Configurator será uma aplicação multiplataforma com nú
                        Servidor Technolife
 ```
 
+Projetos executáveis:
+
+```text
+Technolife.RustDesk.Cli       → ferramenta técnica de suporte e automação
+Technolife.RustDesk.Windows   → produto WinForms entregue ao cliente Windows
+```
+
 ## Core
 
 Responsável por:
@@ -35,6 +42,7 @@ Responsável por:
 - contratos de detector, instalador, configurador, launcher e validador;
 - política de versão homologada;
 - logging abstrato;
+- progresso opcional do setup, sem dependência de interface gráfica;
 - tratamento de erros independente de plataforma.
 
 Interfaces candidatas:
@@ -133,6 +141,11 @@ detectar → configurar → validar → registrar → retornar resultado
 
 O workflow interrompe imediatamente após uma falha, converte exceções inesperadas em resultado estruturado e remove a string exportada de detalhes antes de registrá-los ou devolvê-los. A CLI apenas compõe as implementações Windows e apresenta o resultado; a lógica do fluxo não fica na interface.
 
+`RustDeskSetupWorkflow` aceita opcionalmente `IProgress<SetupProgress>`. Os estados
+`Checking`, `Downloading`, `Installing`, `Configuring`, `Validating`, `Completed` e
+`Failed` descrevem somente o andamento; não carregam caminhos, saída de processos ou
+a configuração exportada. O Core permanece independente de `System.Windows.Forms`.
+
 ## Validação pós-configuração
 
 `WindowsRustDeskValidator` confirma que a instalação usada continua declarada como Windows e que seu executável permanece acessível após o sucesso de `--config`.
@@ -229,7 +242,7 @@ A CLI aceita `--log-directory` para testes e diagnósticos controlados sem alter
 
 ## Interface Windows, CLI técnica e códigos de saída
 
-A experiência principal do cliente Windows é uma interface gráfica mínima. A partir da RD-007.1, executar o artefato normalmente por duplo clique, sem argumentos, deve iniciar o fluxo completo equivalente a `setup` e apresentar progresso, sucesso ou erro sem exibir terminal.
+A experiência principal do cliente Windows é o projeto WinForms `Technolife.RustDesk.Windows`, compilado como `WinExe`. Executar o artefato por duplo clique inicia automaticamente o fluxo completo equivalente a `setup` e apresenta progresso, sucesso ou erro sem exibir terminal.
 
 A CLI permanece como interface técnica secundária. Ela expõe `status` para detecção sem alteração, `configure` para configurar uma instalação existente e `setup` para instalar quando necessário e então configurar. Esses comandos continuam úteis para suporte, diagnóstico, testes e automação.
 
@@ -273,6 +286,13 @@ duplo clique
 ```
 
 A GUI deve ser fina: apenas iniciar e observar os workflows existentes, traduzir estados para mensagens simples e oferecer ações básicas como concluir ou tentar novamente. Nenhuma regra de detecção, instalação, download, checksum, configuração ou validação deve ser copiada para a UI.
+
+`WindowsSetupWorkflowRunner` realiza somente a composição das implementações existentes.
+`SetupFlowController` traduz os estados do Core para texto seguro e permite uma nova
+tentativa após falha. `SetupMainForm` inicia o controlador ao ser exibido; não existe
+botão de início. Operações demoradas são aguardadas de forma assíncrona para manter a
+janela responsiva. O botão `Concluir` fecha a aplicação e nenhuma sessão remota é
+aberta automaticamente.
 
 A CLI continua disponível como ferramenta técnica secundária. Uma interface avançada poderá ser desenvolvida posteriormente sobre o mesmo Core.
 

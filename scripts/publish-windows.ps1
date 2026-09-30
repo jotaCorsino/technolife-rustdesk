@@ -6,10 +6,10 @@ $ProgressPreference = 'SilentlyContinue'
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $solutionPath = Join-Path $repositoryRoot 'Technolife.RustDesk.sln'
-$projectPath = Join-Path $repositoryRoot 'src\Technolife.RustDesk.Cli\Technolife.RustDesk.Cli.csproj'
+$projectPath = Join-Path $repositoryRoot 'src\Technolife.RustDesk.Windows\Technolife.RustDesk.Windows.csproj'
 $artifactRoot = Join-Path $repositoryRoot 'artifacts'
 $artifactDirectory = Join-Path $artifactRoot 'windows-x64'
-$publishDirectory = Join-Path $repositoryRoot 'src\Technolife.RustDesk.Cli\obj\publish\windows-x64'
+$publishDirectory = Join-Path $repositoryRoot 'src\Technolife.RustDesk.Windows\obj\publish\windows-x64'
 $executableName = 'Technolife-RustDesk-Windows.exe'
 $publishedExecutable = Join-Path $publishDirectory $executableName
 $artifactExecutable = Join-Path $artifactDirectory $executableName
