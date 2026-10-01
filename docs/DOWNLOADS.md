@@ -30,8 +30,13 @@ A Beta 2 inclui:
 - aplicação administrativa da configuração Technolife;
 - releitura e validação real de ID Server, Relay Server e chave pública;
 - bloqueio do falso positivo em que `--config` retornava zero sem aplicar os valores;
+- hotfix que impede a GUI de permanecer em “Ativando acesso remoto...”;
+- detecção do serviço pelo Service Control Manager sem bloquear no processo auxiliar
+  `--install-service`;
+- progressão `StartingService → Configuring → Verifying → Completed`, com timeouts de
+  segurança;
 - execução idempotente;
-- 119 testes automatizados aprovados.
+- 130 testes automatizados aprovados.
 
 O cenário real em uma máquina Windows limpa sem RustDesk faz parte dos testes externos
 desta pre-release. O executável ainda não possui assinatura Authenticode e o Windows
@@ -44,8 +49,8 @@ Versão: v0.1.0-beta.2
 RustDesk homologado: 1.4.9
 Status: PRE-RELEASE / TESTE EM CAMPO
 Formato: self-contained, single-file, win-x64
-Tamanho: 161860760 bytes
-SHA-256: FC74847EBE7A8ED6A95F086588713A0DAB50DC17C0137F0B0653D94966323EDC
+Tamanho: 161876632 bytes
+SHA-256: 35E22786422E12FAD32AF0ED39B6940FDB6FEC8ADD7D357CD2EA25869CEBD0C7
 ```
 
 ## Windows x64 — v0.1.0-beta.2
@@ -57,7 +62,8 @@ Versão: v0.1.0-beta.2
 RustDesk homologado: 1.4.9
 Status: PRE-RELEASE / TESTE EM CAMPO
 Formato: self-contained, single-file, win-x64
-SHA-256: FC74847EBE7A8ED6A95F086588713A0DAB50DC17C0137F0B0653D94966323EDC
+Tamanho: 161876632 bytes
+SHA-256: 35E22786422E12FAD32AF0ED39B6940FDB6FEC8ADD7D357CD2EA25869CEBD0C7
 ```
 
 - [Baixar EXE](https://github.com/jotaCorsino/technolife-rustdesk/releases/download/v0.1.0-beta.2/Technolife-RustDesk-Windows.exe)

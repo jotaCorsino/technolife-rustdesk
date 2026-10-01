@@ -58,8 +58,11 @@ A Beta 2 inclui GUI para cliente final, execução por duplo clique, uma única
 confirmação UAC, instalação automática do RustDesk 1.4.9 quando ausente, criação e
 ativação do serviço `RustDesk`, configuração administrativa e validação real de ID
 Server, Relay Server e chave pública. Exit code zero de `--config` não produz mais
-sucesso quando os valores relidos divergem. A suíte possui 119 testes automatizados
-aprovados.
+sucesso quando os valores relidos divergem. A Beta 2 recebeu o hotfix que impede a
+GUI de permanecer em “Ativando acesso remoto...”: `--install-service` não bloqueia
+mais o polling do Service Control Manager, e o fluxo segue por `StartingService →
+Configuring → Verifying → Completed`. Timeouts impedem espera indefinida. A suíte
+possui 130 testes automatizados aprovados.
 
 O cenário real em uma máquina Windows limpa sem RustDesk faz parte dos testes externos
 desta pre-release.

@@ -225,6 +225,13 @@ O serviço é consultado e controlado pela API do Windows, por meio de
 seguida de polling controlado; um serviço parado é iniciado, um pausado é retomado e
 o fluxo não configura nem mostra sucesso se `Running` não for alcançado.
 
+A pre-release recebeu um hotfix para o travamento da GUI em “Ativando acesso
+remoto...”. O processo auxiliar `--install-service` não bloqueia mais a consulta ao
+Service Control Manager: assim que o serviço aparece, o fluxo garante `Running` e
+prossegue por `StartingService → Configuring → Verifying → Completed`. Timeouts de
+etapa e uma proteção final impedem execução indefinida. A suíte validada possui 130
+testes automatizados aprovados.
+
 A GUI se relança uma única vez com `runas`. Dentro do processo já elevado, o
 `SystemProcessRunner` executa filhos diretamente com o token administrativo herdado,
 mantendo argumentos separados e captura de saída. `--config` e as leituras `--option`
