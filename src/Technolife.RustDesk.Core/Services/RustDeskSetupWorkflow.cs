@@ -7,6 +7,7 @@ namespace Technolife.RustDesk.Core.Services;
 public sealed class RustDeskSetupWorkflow
 {
     private const string RedactedValue = "[REDACTED]";
+    private static readonly TimeSpan DefaultSetupTimeout = TimeSpan.FromMinutes(10);
 
     private readonly IRustDeskDetector _detector;
     private readonly IRustDeskInstaller _installer;
@@ -16,6 +17,7 @@ public sealed class RustDeskSetupWorkflow
     private readonly int _redetectionAttempts;
     private readonly TimeSpan _redetectionDelay;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly TimeSpan _setupTimeout;
 
     public RustDeskSetupWorkflow(
         IRustDeskDetector detector,
@@ -25,7 +27,8 @@ public sealed class RustDeskSetupWorkflow
         IAppLogger logger,
         int redetectionAttempts = 10,
         TimeSpan? redetectionDelay = null,
-        Func<TimeSpan, CancellationToken, Task>? delay = null)
+        Func<TimeSpan, CancellationToken, Task>? delay = null,
+        TimeSpan? setupTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(detector);
         ArgumentNullException.ThrowIfNull(installer);
@@ -43,6 +46,11 @@ public sealed class RustDeskSetupWorkflow
             throw new ArgumentOutOfRangeException(nameof(redetectionDelay));
         }
 
+        if (setupTimeout.HasValue && setupTimeout.Value <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(setupTimeout));
+        }
+
         _detector = detector;
         _installer = installer;
         _configurationWorkflow = configurationWorkflow;
@@ -51,6 +59,7 @@ public sealed class RustDeskSetupWorkflow
         _redetectionAttempts = redetectionAttempts;
         _redetectionDelay = redetectionDelay ?? TimeSpan.FromSeconds(2);
         _delay = delay ?? Task.Delay;
+        _setupTimeout = setupTimeout ?? DefaultSetupTimeout;
     }
 
     public async Task<OperationResult<RustDeskSetupWorkflowResult>> ExecuteAsync(
@@ -60,10 +69,35 @@ public sealed class RustDeskSetupWorkflow
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        var guardedProgress = new GatedProgress(progress);
+        using var setupCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var setupTask = ExecuteCoreAsync(
+            configuration,
+            setupCancellation.Token,
+            guardedProgress);
+
         try
         {
-            return await ExecuteCoreAsync(configuration, cancellationToken, progress)
+            return await setupTask
+                .WaitAsync(_setupTimeout, cancellationToken)
                 .ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            guardedProgress.Stop();
+            setupCancellation.Cancel();
+            ObserveFault(setupTask);
+            var technicalDetails =
+                $"Setup exceeded its timeout of {_setupTimeout:c}.";
+
+            _logger.Error("The setup workflow timed out.", technicalDetails);
+            progress?.Report(new SetupProgress(SetupProgressStage.Failed));
+
+            return OperationResult<RustDeskSetupWorkflowResult>.Failed(
+                ErrorCode.UnexpectedFailure,
+                "The RustDesk setup workflow timed out.",
+                technicalDetails);
         }
         catch (OperationCanceledException)
         {
@@ -264,5 +298,29 @@ public sealed class RustDeskSetupWorkflow
             sensitiveValue,
             RedactedValue,
             StringComparison.Ordinal);
+    }
+
+    private static void ObserveFault(Task task) =>
+        _ = task.ContinueWith(
+            static completed => _ = completed.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously |
+            TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
+
+    private sealed class GatedProgress(IProgress<SetupProgress>? inner)
+        : IProgress<SetupProgress>
+    {
+        private bool _stopped;
+
+        public void Report(SetupProgress value)
+        {
+            if (!_stopped)
+            {
+                inner?.Report(value);
+            }
+        }
+
+        public void Stop() => _stopped = true;
     }
 }

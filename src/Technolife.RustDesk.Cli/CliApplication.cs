@@ -149,7 +149,7 @@ public static class CliApplication
             [configuration.ExportedConfiguration]);
         var processRunner = new SystemProcessRunner();
         var serviceManager = new WindowsRustDeskServiceManager(
-            processRunner,
+            new SystemServiceInstallProcessLauncher(),
             new SystemWindowsServiceController(),
             logger);
         var workflow = new RustDeskConfigurationWorkflow(
@@ -189,7 +189,7 @@ public static class CliApplication
             WindowsRustDeskPaths.FromCurrentEnvironment());
         var processRunner = new SystemProcessRunner();
         var serviceManager = new WindowsRustDeskServiceManager(
-            processRunner,
+            new SystemServiceInstallProcessLauncher(),
             new SystemWindowsServiceController(),
             logger);
         var configurationWorkflow = new RustDeskConfigurationWorkflow(

@@ -7,6 +7,12 @@ namespace Technolife.RustDesk.Core.Services;
 public sealed class RustDeskConfigurationWorkflow
 {
     private const string RedactedValue = "[REDACTED]";
+    private static readonly TimeSpan DefaultServiceActivationTimeout =
+        TimeSpan.FromSeconds(75);
+    private static readonly TimeSpan DefaultConfigurationTimeout =
+        TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan DefaultValidationTimeout =
+        TimeSpan.FromMinutes(2);
 
     private readonly IRustDeskDetector _detector;
     private readonly IRustDeskServiceManager _serviceManager;
@@ -14,6 +20,9 @@ public sealed class RustDeskConfigurationWorkflow
     private readonly IRustDeskValidator _validator;
     private readonly IPlatformEnvironment _platformEnvironment;
     private readonly IAppLogger _logger;
+    private readonly TimeSpan _serviceActivationTimeout;
+    private readonly TimeSpan _configurationTimeout;
+    private readonly TimeSpan _validationTimeout;
 
     public RustDeskConfigurationWorkflow(
         IRustDeskDetector detector,
@@ -21,7 +30,10 @@ public sealed class RustDeskConfigurationWorkflow
         IRustDeskConfigurator configurator,
         IRustDeskValidator validator,
         IPlatformEnvironment platformEnvironment,
-        IAppLogger logger)
+        IAppLogger logger,
+        TimeSpan? serviceActivationTimeout = null,
+        TimeSpan? configurationTimeout = null,
+        TimeSpan? validationTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(detector);
         ArgumentNullException.ThrowIfNull(serviceManager);
@@ -30,12 +42,20 @@ public sealed class RustDeskConfigurationWorkflow
         ArgumentNullException.ThrowIfNull(platformEnvironment);
         ArgumentNullException.ThrowIfNull(logger);
 
+        ValidateTimeout(serviceActivationTimeout, nameof(serviceActivationTimeout));
+        ValidateTimeout(configurationTimeout, nameof(configurationTimeout));
+        ValidateTimeout(validationTimeout, nameof(validationTimeout));
+
         _detector = detector;
         _serviceManager = serviceManager;
         _configurator = configurator;
         _validator = validator;
         _platformEnvironment = platformEnvironment;
         _logger = logger;
+        _serviceActivationTimeout =
+            serviceActivationTimeout ?? DefaultServiceActivationTimeout;
+        _configurationTimeout = configurationTimeout ?? DefaultConfigurationTimeout;
+        _validationTimeout = validationTimeout ?? DefaultValidationTimeout;
     }
 
     public async Task<OperationResult<RustDeskConfigurationWorkflowResult>> ExecuteAsync(
@@ -152,30 +172,20 @@ public sealed class RustDeskConfigurationWorkflow
         _logger.Info("RustDesk service activation started.");
         progress?.Report(new SetupProgress(SetupProgressStage.StartingService));
 
-        var serviceInstallationResult = await _serviceManager
-            .EnsureInstalledAsync(installation, cancellationToken)
+        var serviceActivationResult = await ExecuteWithTimeoutAsync(
+                token => ActivateServiceAsync(installation, token),
+                _serviceActivationTimeout,
+                ErrorCode.InstallationFailed,
+                "RustDesk service activation",
+                cancellationToken)
             .ConfigureAwait(false);
 
-        if (!serviceInstallationResult.Success)
+        if (!serviceActivationResult.Success)
         {
             return CreateFailure(
-                serviceInstallationResult.ErrorCode,
-                "RustDesk service installation failed.",
-                serviceInstallationResult.TechnicalDetails ??
-                    serviceInstallationResult.Message,
-                configuration);
-        }
-
-        var serviceStartResult = await _serviceManager
-            .EnsureRunningAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        if (!serviceStartResult.Success)
-        {
-            return CreateFailure(
-                serviceStartResult.ErrorCode,
-                "RustDesk service could not be started.",
-                serviceStartResult.TechnicalDetails ?? serviceStartResult.Message,
+                serviceActivationResult.ErrorCode,
+                "RustDesk service activation failed.",
+                serviceActivationResult.TechnicalDetails ?? serviceActivationResult.Message,
                 configuration);
         }
 
@@ -183,8 +193,15 @@ public sealed class RustDeskConfigurationWorkflow
         _logger.Info("Configuration started.");
         progress?.Report(new SetupProgress(SetupProgressStage.Configuring));
 
-        var configurationResult = await _configurator
-            .ConfigureAsync(installation, configuration, cancellationToken)
+        var configurationResult = await ExecuteWithTimeoutAsync(
+                token => _configurator.ConfigureAsync(
+                    installation,
+                    configuration,
+                    token),
+                _configurationTimeout,
+                ErrorCode.ConfigurationFailed,
+                "RustDesk configuration",
+                cancellationToken)
             .ConfigureAwait(false);
 
         if (!configurationResult.Success)
@@ -200,8 +217,15 @@ public sealed class RustDeskConfigurationWorkflow
         _logger.Info("Independent configuration verification started.");
         progress?.Report(new SetupProgress(SetupProgressStage.Verifying));
 
-        var validationResult = await _validator
-            .ValidateAsync(installation, configuration, cancellationToken)
+        var validationResult = await ExecuteWithTimeoutAsync(
+                token => _validator.ValidateAsync(
+                    installation,
+                    configuration,
+                    token),
+                _validationTimeout,
+                ErrorCode.ValidationFailed,
+                "RustDesk validation",
+                cancellationToken)
             .ConfigureAwait(false);
 
         if (!validationResult.Success || validationResult.Value is null)
@@ -235,6 +259,97 @@ public sealed class RustDeskConfigurationWorkflow
         return OperationResult<RustDeskConfigurationWorkflowResult>.Succeeded(
             workflowResult,
             "RustDesk configuration workflow completed successfully.");
+    }
+
+    private async Task<OperationResult> ActivateServiceAsync(
+        RustDeskInstallation installation,
+        CancellationToken cancellationToken)
+    {
+        var installationResult = await _serviceManager
+            .EnsureInstalledAsync(installation, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!installationResult.Success)
+        {
+            return installationResult;
+        }
+
+        return await _serviceManager
+            .EnsureRunningAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static async Task<OperationResult> ExecuteWithTimeoutAsync(
+        Func<CancellationToken, Task<OperationResult>> operation,
+        TimeSpan timeout,
+        ErrorCode timeoutErrorCode,
+        string stageName,
+        CancellationToken cancellationToken)
+    {
+        using var stageCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var operationTask = operation(stageCancellation.Token);
+
+        try
+        {
+            return await operationTask
+                .WaitAsync(timeout, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            stageCancellation.Cancel();
+            ObserveFault(operationTask);
+            return OperationResult.Failed(
+                timeoutErrorCode,
+                $"{stageName} timed out.",
+                $"Stage exceeded its timeout of {timeout:c}.");
+        }
+    }
+
+    private static async Task<OperationResult<RustDeskValidation>>
+        ExecuteWithTimeoutAsync(
+            Func<CancellationToken, Task<OperationResult<RustDeskValidation>>> operation,
+            TimeSpan timeout,
+            ErrorCode timeoutErrorCode,
+            string stageName,
+            CancellationToken cancellationToken)
+    {
+        using var stageCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var operationTask = operation(stageCancellation.Token);
+
+        try
+        {
+            return await operationTask
+                .WaitAsync(timeout, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            stageCancellation.Cancel();
+            ObserveFault(operationTask);
+            return OperationResult<RustDeskValidation>.Failed(
+                timeoutErrorCode,
+                $"{stageName} timed out.",
+                $"Stage exceeded its timeout of {timeout:c}.");
+        }
+    }
+
+    private static void ObserveFault(Task task) =>
+        _ = task.ContinueWith(
+            static completed => _ = completed.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously |
+                TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
+
+    private static void ValidateTimeout(TimeSpan? timeout, string parameterName)
+    {
+        if (timeout.HasValue && timeout.Value <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(parameterName);
+        }
     }
 
     private OperationResult<RustDeskConfigurationWorkflowResult> CreateUnexpectedFailure(

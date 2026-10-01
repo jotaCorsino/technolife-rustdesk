@@ -2,6 +2,8 @@ using Technolife.RustDesk.Core.Abstractions;
 using Technolife.RustDesk.Core.Enums;
 using Technolife.RustDesk.Core.Models;
 using Technolife.RustDesk.Core.Services;
+using Technolife.RustDesk.Platforms.Abstractions;
+using Technolife.RustDesk.Platforms.Windows;
 
 namespace Technolife.RustDesk.Tests.Core.Services;
 
@@ -38,17 +40,25 @@ public sealed class RustDeskSetupWorkflowTests
     public async Task ReportsConfigurationProgressWithoutInstallationWhenRustDeskExists()
     {
         var installer = new FakeInstaller();
+        var processLauncher = new FakeServiceInstallProcessLauncher();
+        var serviceManager = CreateWindowsServiceManager(
+            processLauncher,
+            new FakeWindowsServiceController(
+                RustDeskServiceStatus.Running,
+                RustDeskServiceStatus.Running));
         var workflow = CreateWorkflow(
             new SequenceDetector(Found()),
             installer,
             new FakeConfigurator(),
-            new FakeValidator());
+            new FakeValidator(),
+            serviceManager: serviceManager);
         var progress = new RecordingProgress();
 
         var result = await workflow.ExecuteAsync(Configuration(), progress: progress);
 
         Assert.True(result.Success);
         Assert.Equal(0, installer.CallCount);
+        Assert.Equal(0, processLauncher.CallCount);
         Assert.Equal(
             [
                 SetupProgressStage.Checking,
@@ -56,6 +66,71 @@ public sealed class RustDeskSetupWorkflowTests
                 SetupProgressStage.Configuring,
                 SetupProgressStage.Verifying,
                 SetupProgressStage.Completed
+            ],
+            progress.Stages);
+    }
+
+    [Fact]
+    public async Task ContinuesAllProgressWhenServiceAppearsWhileHelperRemainsActive()
+    {
+        var processLauncher = new FakeServiceInstallProcessLauncher();
+        var serviceManager = CreateWindowsServiceManager(
+            processLauncher,
+            new FakeWindowsServiceController(
+                RustDeskServiceStatus.NotInstalled,
+                RustDeskServiceStatus.NotInstalled,
+                RustDeskServiceStatus.Running,
+                RustDeskServiceStatus.Running));
+        var workflow = CreateWorkflow(
+            new SequenceDetector(Found()),
+            new FakeInstaller(),
+            new FakeConfigurator(),
+            new FakeValidator(),
+            serviceManager: serviceManager);
+        var progress = new RecordingProgress();
+
+        var result = await workflow.ExecuteAsync(Configuration(), progress: progress);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, processLauncher.CallCount);
+        Assert.Equal(1, processLauncher.Process.TerminateCallCount);
+        Assert.Equal(
+            [
+                SetupProgressStage.Checking,
+                SetupProgressStage.StartingService,
+                SetupProgressStage.Configuring,
+                SetupProgressStage.Verifying,
+                SetupProgressStage.Completed
+            ],
+            progress.Stages);
+    }
+
+    [Fact]
+    public async Task ReportsFailureWhenServiceNeverReachesRunningState()
+    {
+        var serviceManager = new FakeServiceManager
+        {
+            EnsureRunningResult = OperationResult.Failed(
+                ErrorCode.InstallationFailed,
+                "Service did not reach Running.")
+        };
+        var workflow = CreateWorkflow(
+            new SequenceDetector(Found()),
+            new FakeInstaller(),
+            new FakeConfigurator(),
+            new FakeValidator(),
+            serviceManager: serviceManager);
+        var progress = new RecordingProgress();
+
+        var result = await workflow.ExecuteAsync(Configuration(), progress: progress);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.InstallationFailed, result.ErrorCode);
+        Assert.Equal(
+            [
+                SetupProgressStage.Checking,
+                SetupProgressStage.StartingService,
+                SetupProgressStage.Failed
             ],
             progress.Stages);
     }
@@ -204,13 +279,34 @@ public sealed class RustDeskSetupWorkflowTests
         Assert.Equal(0, installer.CallCount);
     }
 
+    [Fact]
+    public async Task FullSetupGuardFailsInsteadOfWaitingIndefinitely()
+    {
+        var workflow = CreateWorkflow(
+            new HangingDetector(),
+            new FakeInstaller(),
+            new FakeConfigurator(),
+            new FakeValidator(),
+            setupTimeout: TimeSpan.FromMilliseconds(25));
+        var progress = new RecordingProgress();
+
+        var result = await workflow.ExecuteAsync(Configuration(), progress: progress);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.UnexpectedFailure, result.ErrorCode);
+        Assert.Equal(
+            [SetupProgressStage.Checking, SetupProgressStage.Failed],
+            progress.Stages);
+    }
+
     private static RustDeskSetupWorkflow CreateWorkflow(
         IRustDeskDetector detector,
         IRustDeskInstaller installer,
         IRustDeskConfigurator configurator,
         IRustDeskValidator validator,
         int redetectionAttempts = 2,
-        IRustDeskServiceManager? serviceManager = null)
+        IRustDeskServiceManager? serviceManager = null,
+        TimeSpan? setupTimeout = null)
     {
         var platform = new StubPlatformEnvironment();
         var logger = new InMemoryLogger();
@@ -230,7 +326,8 @@ public sealed class RustDeskSetupWorkflowTests
             logger,
             redetectionAttempts,
             TimeSpan.Zero,
-            (_, _) => Task.CompletedTask);
+            (_, _) => Task.CompletedTask,
+            setupTimeout);
     }
 
     private static RustDeskConfiguration Configuration() =>
@@ -252,6 +349,19 @@ public sealed class RustDeskSetupWorkflowTests
     private static PlatformInfo Platform() =>
         new(PlatformKind.Windows, CpuArchitecture.X64);
 
+    private static WindowsRustDeskServiceManager CreateWindowsServiceManager(
+        IServiceInstallProcessLauncher processLauncher,
+        IWindowsServiceController serviceController) =>
+        new(
+            processLauncher,
+            serviceController,
+            new InMemoryLogger(),
+            pollingAttempts: 5,
+            pollingDelay: TimeSpan.Zero,
+            delay: (_, _) => Task.CompletedTask,
+            serviceInstallationTimeout: TimeSpan.FromSeconds(5),
+            serviceStartTimeout: TimeSpan.FromSeconds(5));
+
     private sealed class SequenceDetector(
         params OperationResult<RustDeskInstallation>[] results) : IRustDeskDetector
     {
@@ -264,6 +374,79 @@ public sealed class RustDeskSetupWorkflowTests
             CallCount++;
             return Task.FromResult(_results.Dequeue());
         }
+    }
+
+    private sealed class HangingDetector : IRustDeskDetector
+    {
+        public async Task<OperationResult<RustDeskInstallation>> DetectAsync(
+            CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return NotFound();
+        }
+    }
+
+    private sealed class FakeServiceInstallProcessLauncher
+        : IServiceInstallProcessLauncher
+    {
+        public FakeServiceInstallProcess Process { get; } = new();
+
+        public int CallCount { get; private set; }
+
+        public OperationResult<IServiceInstallProcess> Start(ProcessRequest request)
+        {
+            CallCount++;
+            return OperationResult<IServiceInstallProcess>.Succeeded(Process, "Started.");
+        }
+    }
+
+    private sealed class FakeServiceInstallProcess : IServiceInstallProcess
+    {
+        public bool HasExited { get; private set; }
+
+        public int? ExitCode => HasExited ? 0 : null;
+
+        public int TerminateCallCount { get; private set; }
+
+        public Task<OperationResult> TerminateAsync(
+            TimeSpan timeout,
+            CancellationToken cancellationToken = default)
+        {
+            TerminateCallCount++;
+            HasExited = true;
+            return Task.FromResult(OperationResult.Succeeded("Terminated."));
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            HasExited = true;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class FakeWindowsServiceController(
+        params RustDeskServiceStatus[] statuses) : IWindowsServiceController
+    {
+        private readonly Queue<RustDeskServiceStatus> _statuses = new(statuses);
+        private RustDeskServiceStatus _lastStatus = statuses.LastOrDefault();
+
+        public RustDeskServiceStatus GetStatus(string serviceName)
+        {
+            Assert.Equal(WindowsRustDeskServiceManager.ServiceName, serviceName);
+
+            if (_statuses.Count > 0)
+            {
+                _lastStatus = _statuses.Dequeue();
+            }
+
+            return _lastStatus;
+        }
+
+        public void Start(string serviceName) =>
+            Assert.Equal(WindowsRustDeskServiceManager.ServiceName, serviceName);
+
+        public void Continue(string serviceName) =>
+            Assert.Equal(WindowsRustDeskServiceManager.ServiceName, serviceName);
     }
 
     private sealed class FakeInstaller : IRustDeskInstaller
@@ -320,6 +503,12 @@ public sealed class RustDeskSetupWorkflowTests
 
     private sealed class FakeServiceManager : IRustDeskServiceManager
     {
+        public OperationResult EnsureInstalledResult { get; init; } =
+            OperationResult.Succeeded("Installed.");
+
+        public OperationResult EnsureRunningResult { get; init; } =
+            OperationResult.Succeeded("Running.");
+
         public int EnsureInstalledCallCount { get; private set; }
 
         public int EnsureRunningCallCount { get; private set; }
@@ -336,14 +525,14 @@ public sealed class RustDeskSetupWorkflowTests
             CancellationToken cancellationToken = default)
         {
             EnsureInstalledCallCount++;
-            return Task.FromResult(OperationResult.Succeeded("Installed."));
+            return Task.FromResult(EnsureInstalledResult);
         }
 
         public Task<OperationResult> EnsureRunningAsync(
             CancellationToken cancellationToken = default)
         {
             EnsureRunningCallCount++;
-            return Task.FromResult(OperationResult.Succeeded("Running."));
+            return Task.FromResult(EnsureRunningResult);
         }
     }
 

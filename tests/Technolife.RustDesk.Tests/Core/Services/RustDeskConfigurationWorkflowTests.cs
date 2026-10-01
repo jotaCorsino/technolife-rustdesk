@@ -102,6 +102,30 @@ public sealed class RustDeskConfigurationWorkflowTests
     }
 
     [Fact]
+    public async Task FailsWhenServiceActivationExceedsItsTimeout()
+    {
+        var serviceManager = new FakeServiceManager
+        {
+            WaitForInstallationUntilCanceled = true
+        };
+        var configurator = new FakeConfigurator();
+        var workflow = CreateWorkflow(
+            new FakeDetector(),
+            configurator,
+            new FakeValidator(),
+            serviceManager: serviceManager,
+            serviceActivationTimeout: TimeSpan.FromMilliseconds(25));
+
+        var result = await workflow.ExecuteAsync(CreateConfiguration());
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.InstallationFailed, result.ErrorCode);
+        Assert.Equal(1, serviceManager.EnsureInstalledCallCount);
+        Assert.Equal(0, serviceManager.EnsureRunningCallCount);
+        Assert.Equal(0, configurator.CallCount);
+    }
+
+    [Fact]
     public async Task RejectsAppliedStatusWithoutIndependentVerification()
     {
         var validator = new FakeValidator
@@ -156,6 +180,48 @@ public sealed class RustDeskConfigurationWorkflowTests
             new FakeDetector(),
             new FakeConfigurator(),
             validator);
+
+        var result = await workflow.ExecuteAsync(CreateConfiguration());
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.ValidationFailed, result.ErrorCode);
+        Assert.Equal(1, validator.CallCount);
+    }
+
+    [Fact]
+    public async Task FailsWhenConfigurationExceedsItsTimeout()
+    {
+        var configurator = new FakeConfigurator
+        {
+            WaitUntilCanceled = true
+        };
+        var validator = new FakeValidator();
+        var workflow = CreateWorkflow(
+            new FakeDetector(),
+            configurator,
+            validator,
+            configurationTimeout: TimeSpan.FromMilliseconds(25));
+
+        var result = await workflow.ExecuteAsync(CreateConfiguration());
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCode.ConfigurationFailed, result.ErrorCode);
+        Assert.Equal(1, configurator.CallCount);
+        Assert.Equal(0, validator.CallCount);
+    }
+
+    [Fact]
+    public async Task FailsWhenValidationExceedsItsTimeout()
+    {
+        var validator = new FakeValidator
+        {
+            WaitUntilCanceled = true
+        };
+        var workflow = CreateWorkflow(
+            new FakeDetector(),
+            new FakeConfigurator(),
+            validator,
+            validationTimeout: TimeSpan.FromMilliseconds(25));
 
         var result = await workflow.ExecuteAsync(CreateConfiguration());
 
@@ -223,14 +289,20 @@ public sealed class RustDeskConfigurationWorkflowTests
         IRustDeskConfigurator configurator,
         IRustDeskValidator validator,
         IAppLogger? logger = null,
-        IRustDeskServiceManager? serviceManager = null) =>
+        IRustDeskServiceManager? serviceManager = null,
+        TimeSpan? serviceActivationTimeout = null,
+        TimeSpan? configurationTimeout = null,
+        TimeSpan? validationTimeout = null) =>
         new(
             detector,
             serviceManager ?? new FakeServiceManager(),
             configurator,
             validator,
             new StubPlatformEnvironment(),
-            logger ?? new InMemoryLogger());
+            logger ?? new InMemoryLogger(),
+            serviceActivationTimeout,
+            configurationTimeout,
+            validationTimeout);
 
     private static RustDeskConfiguration CreateConfiguration() =>
         new(
@@ -280,13 +352,21 @@ public sealed class RustDeskConfigurationWorkflowTests
 
         public int CallCount { get; private set; }
 
-        public Task<OperationResult> ConfigureAsync(
+        public bool WaitUntilCanceled { get; init; }
+
+        public async Task<OperationResult> ConfigureAsync(
             RustDeskInstallation installation,
             RustDeskConfiguration configuration,
             CancellationToken cancellationToken = default)
         {
             CallCount++;
-            return Task.FromResult(Result);
+
+            if (WaitUntilCanceled)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            return Result;
         }
     }
 
@@ -301,13 +381,21 @@ public sealed class RustDeskConfigurationWorkflowTests
 
         public int CallCount { get; private set; }
 
-        public Task<OperationResult<RustDeskValidation>> ValidateAsync(
+        public bool WaitUntilCanceled { get; init; }
+
+        public async Task<OperationResult<RustDeskValidation>> ValidateAsync(
             RustDeskInstallation installation,
             RustDeskConfiguration configuration,
             CancellationToken cancellationToken = default)
         {
             CallCount++;
-            return Task.FromResult(Result);
+
+            if (WaitUntilCanceled)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            return Result;
         }
     }
 
@@ -323,6 +411,8 @@ public sealed class RustDeskConfigurationWorkflowTests
 
         public int EnsureRunningCallCount { get; private set; }
 
+        public bool WaitForInstallationUntilCanceled { get; init; }
+
         public Task<OperationResult<RustDeskServiceStatus>> GetStatusAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult(
@@ -330,12 +420,18 @@ public sealed class RustDeskConfigurationWorkflowTests
                     RustDeskServiceStatus.Running,
                     "Running."));
 
-        public Task<OperationResult> EnsureInstalledAsync(
+        public async Task<OperationResult> EnsureInstalledAsync(
             RustDeskInstallation installation,
             CancellationToken cancellationToken = default)
         {
             EnsureInstalledCallCount++;
-            return Task.FromResult(EnsureInstalledResult);
+
+            if (WaitForInstallationUntilCanceled)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            return EnsureInstalledResult;
         }
 
         public Task<OperationResult> EnsureRunningAsync(

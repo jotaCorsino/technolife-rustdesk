@@ -11,24 +11,33 @@ public sealed class WindowsRustDeskServiceManager : IRustDeskServiceManager
 {
     public const string ServiceName = "RustDesk";
 
-    private static readonly TimeSpan ServiceCommandTimeout = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan DefaultServiceInstallationTimeout =
+        TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultServiceStartTimeout =
+        TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan HelperTerminationTimeout =
+        TimeSpan.FromSeconds(5);
 
-    private readonly IProcessRunner _processRunner;
+    private readonly IServiceInstallProcessLauncher _serviceInstallProcessLauncher;
     private readonly IWindowsServiceController _serviceController;
     private readonly IAppLogger _logger;
     private readonly int _pollingAttempts;
     private readonly TimeSpan _pollingDelay;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly TimeSpan _serviceInstallationTimeout;
+    private readonly TimeSpan _serviceStartTimeout;
 
     public WindowsRustDeskServiceManager(
-        IProcessRunner processRunner,
+        IServiceInstallProcessLauncher serviceInstallProcessLauncher,
         IWindowsServiceController serviceController,
         IAppLogger logger,
-        int pollingAttempts = 10,
+        int pollingAttempts = 30,
         TimeSpan? pollingDelay = null,
-        Func<TimeSpan, CancellationToken, Task>? delay = null)
+        Func<TimeSpan, CancellationToken, Task>? delay = null,
+        TimeSpan? serviceInstallationTimeout = null,
+        TimeSpan? serviceStartTimeout = null)
     {
-        ArgumentNullException.ThrowIfNull(processRunner);
+        ArgumentNullException.ThrowIfNull(serviceInstallProcessLauncher);
         ArgumentNullException.ThrowIfNull(serviceController);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -42,12 +51,26 @@ public sealed class WindowsRustDeskServiceManager : IRustDeskServiceManager
             throw new ArgumentOutOfRangeException(nameof(pollingDelay));
         }
 
-        _processRunner = processRunner;
+        if (serviceInstallationTimeout.HasValue &&
+            serviceInstallationTimeout.Value <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(serviceInstallationTimeout));
+        }
+
+        if (serviceStartTimeout.HasValue && serviceStartTimeout.Value <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(serviceStartTimeout));
+        }
+
+        _serviceInstallProcessLauncher = serviceInstallProcessLauncher;
         _serviceController = serviceController;
         _logger = logger;
         _pollingAttempts = pollingAttempts;
         _pollingDelay = pollingDelay ?? TimeSpan.FromSeconds(1);
         _delay = delay ?? Task.Delay;
+        _serviceInstallationTimeout =
+            serviceInstallationTimeout ?? DefaultServiceInstallationTimeout;
+        _serviceStartTimeout = serviceStartTimeout ?? DefaultServiceStartTimeout;
     }
 
     public Task<OperationResult<RustDeskServiceStatus>> GetStatusAsync(
@@ -115,17 +138,18 @@ public sealed class WindowsRustDeskServiceManager : IRustDeskServiceManager
             installation.ExecutablePath,
             ["--install-service"],
             Path.GetDirectoryName(installation.ExecutablePath),
-            ServiceCommandTimeout,
+            _serviceInstallationTimeout,
             requiresElevation: true);
-        var processResult = await _processRunner
-            .RunAsync(request, cancellationToken)
-            .ConfigureAwait(false);
+        var processStart = _serviceInstallProcessLauncher.Start(request);
 
-        if (!processResult.Success)
+        if (!processStart.Success || processStart.Value is null)
         {
-            var errorCode = processResult.ErrorCode is ErrorCode.ElevationFailed
-                ? ErrorCode.ElevationFailed
-                : ErrorCode.InstallationFailed;
+            var errorCode = processStart.ErrorCode switch
+            {
+                ErrorCode.ElevationFailed => ErrorCode.ElevationFailed,
+                ErrorCode.PermissionDenied => ErrorCode.PermissionDenied,
+                _ => ErrorCode.InstallationFailed
+            };
 
             return OperationResult.Failed(
                 errorCode,
@@ -133,55 +157,82 @@ public sealed class WindowsRustDeskServiceManager : IRustDeskServiceManager
                     ? "RustDesk service installation elevation was declined or failed."
                     : "The RustDesk service installation process failed.",
                 $"Service installation process failed with error code " +
-                $"{processResult.ErrorCode}.");
+                $"{processStart.ErrorCode}.");
         }
 
-        if (processResult.Value is null)
+        await using var installProcess = processStart.Value;
+        using var operationCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        operationCancellation.CancelAfter(_serviceInstallationTimeout);
+        var processExitLogged = false;
+
+        try
+        {
+            for (var attempt = 1; attempt <= _pollingAttempts; attempt++)
+            {
+                var status = await GetStatusAsync(operationCancellation.Token)
+                    .ConfigureAwait(false);
+
+                if (!status.Success)
+                {
+                    return ToFailure(status);
+                }
+
+                if (status.Value is not RustDeskServiceStatus.NotInstalled)
+                {
+                    _logger.Info(
+                        $"RustDesk service '{ServiceName}' was detected by SCM after " +
+                        "the installation request.");
+
+                    await TerminateHelperIfRunningAsync(
+                            installProcess,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    return OperationResult.Succeeded(
+                        "The RustDesk service was installed successfully.");
+                }
+
+                if (installProcess.HasExited && !processExitLogged)
+                {
+                    processExitLogged = true;
+                    var exitCode = installProcess.ExitCode;
+                    _logger.Info(
+                        $"RustDesk service installation helper exited with code " +
+                        $"{exitCode?.ToString() ?? "unknown"} before SCM detection.");
+
+                    if (exitCode is not 0)
+                    {
+                        return OperationResult.Failed(
+                            ErrorCode.InstallationFailed,
+                            "RustDesk returned an error while installing its service.",
+                            $"Service installation helper exited with code " +
+                            $"{exitCode?.ToString() ?? "unknown"}.");
+                    }
+                }
+
+                if (attempt < _pollingAttempts)
+                {
+                    await _delay(_pollingDelay, operationCancellation.Token)
+                        .ConfigureAwait(false);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+            when (!cancellationToken.IsCancellationRequested)
         {
             return OperationResult.Failed(
                 ErrorCode.InstallationFailed,
-                "The RustDesk service installer returned no process result.");
-        }
-
-        _logger.Info(
-            $"RustDesk service installer completed with exit code " +
-            $"{processResult.Value.ExitCode}.");
-
-        if (processResult.Value.ExitCode is not 0)
-        {
-            return OperationResult.Failed(
-                ErrorCode.InstallationFailed,
-                "RustDesk returned an error while installing its service.",
-                $"Service installation process exited with code " +
-                $"{processResult.Value.ExitCode}.");
-        }
-
-        for (var attempt = 1; attempt <= _pollingAttempts; attempt++)
-        {
-            var status = await GetStatusAsync(cancellationToken).ConfigureAwait(false);
-
-            if (!status.Success)
-            {
-                return ToFailure(status);
-            }
-
-            if (status.Value is not RustDeskServiceStatus.NotInstalled)
-            {
-                _logger.Info($"RustDesk service '{ServiceName}' was detected after installation.");
-                return OperationResult.Succeeded(
-                    "The RustDesk service was installed successfully.");
-            }
-
-            if (attempt < _pollingAttempts)
-            {
-                await _delay(_pollingDelay, cancellationToken).ConfigureAwait(false);
-            }
+                "The RustDesk service installation timed out.",
+                $"Service '{ServiceName}' did not appear in SCM within " +
+                $"{_serviceInstallationTimeout:c}.");
         }
 
         return OperationResult.Failed(
             ErrorCode.InstallationFailed,
-            "The RustDesk service was not found after installation.",
-            $"Service '{ServiceName}' remained absent after {_pollingAttempts} checks.");
+            "The RustDesk service installation timed out.",
+            $"Service '{ServiceName}' remained absent after {_pollingAttempts} checks " +
+            $"within {_serviceInstallationTimeout:c}.");
     }
 
     public async Task<OperationResult> EnsureRunningAsync(
@@ -189,79 +240,125 @@ public sealed class WindowsRustDeskServiceManager : IRustDeskServiceManager
     {
         var startRequested = false;
         var continueRequested = false;
+        using var operationCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        operationCancellation.CancelAfter(_serviceStartTimeout);
 
-        for (var attempt = 1; attempt <= _pollingAttempts; attempt++)
+        try
         {
-            var statusResult = await GetStatusAsync(cancellationToken).ConfigureAwait(false);
-
-            if (!statusResult.Success)
+            for (var attempt = 1; attempt <= _pollingAttempts; attempt++)
             {
-                return ToFailure(statusResult);
+                var statusResult = await GetStatusAsync(operationCancellation.Token)
+                    .ConfigureAwait(false);
+
+                if (!statusResult.Success)
+                {
+                    return ToFailure(statusResult);
+                }
+
+                switch (statusResult.Value)
+                {
+                    case RustDeskServiceStatus.Running:
+                        return OperationResult.Succeeded("The RustDesk service is running.");
+
+                    case RustDeskServiceStatus.NotInstalled:
+                        return OperationResult.Failed(
+                            ErrorCode.InstallationFailed,
+                            "The RustDesk service is not installed.");
+
+                    case RustDeskServiceStatus.Stopped when !startRequested:
+                        var startResult = InvokeServiceAction(
+                            () => _serviceController.Start(ServiceName),
+                            "start");
+
+                        if (!startResult.Success)
+                        {
+                            return startResult;
+                        }
+
+                        startRequested = true;
+                        _logger.Info($"Start requested for RustDesk service '{ServiceName}'.");
+                        break;
+
+                    case RustDeskServiceStatus.Paused when !continueRequested:
+                        var continueResult = InvokeServiceAction(
+                            () => _serviceController.Continue(ServiceName),
+                            "continue");
+
+                        if (!continueResult.Success)
+                        {
+                            return continueResult;
+                        }
+
+                        continueRequested = true;
+                        _logger.Info($"Continue requested for RustDesk service '{ServiceName}'.");
+                        break;
+
+                    case RustDeskServiceStatus.Stopped:
+                    case RustDeskServiceStatus.StartPending:
+                    case RustDeskServiceStatus.StopPending:
+                    case RustDeskServiceStatus.ContinuePending:
+                    case RustDeskServiceStatus.PausePending:
+                    case RustDeskServiceStatus.Paused:
+                        break;
+
+                    default:
+                        return OperationResult.Failed(
+                            ErrorCode.InstallationFailed,
+                            "The RustDesk service reported an unsupported state.",
+                            $"Service '{ServiceName}' reported status {statusResult.Value}.");
+                }
+
+                if (attempt < _pollingAttempts)
+                {
+                    await _delay(_pollingDelay, operationCancellation.Token)
+                        .ConfigureAwait(false);
+                }
             }
-
-            switch (statusResult.Value)
-            {
-                case RustDeskServiceStatus.Running:
-                    return OperationResult.Succeeded("The RustDesk service is running.");
-
-                case RustDeskServiceStatus.NotInstalled:
-                    return OperationResult.Failed(
-                        ErrorCode.InstallationFailed,
-                        "The RustDesk service is not installed.");
-
-                case RustDeskServiceStatus.Stopped when !startRequested:
-                    var startResult = InvokeServiceAction(
-                        () => _serviceController.Start(ServiceName),
-                        "start");
-
-                    if (!startResult.Success)
-                    {
-                        return startResult;
-                    }
-
-                    startRequested = true;
-                    _logger.Info($"Start requested for RustDesk service '{ServiceName}'.");
-                    break;
-
-                case RustDeskServiceStatus.Paused when !continueRequested:
-                    var continueResult = InvokeServiceAction(
-                        () => _serviceController.Continue(ServiceName),
-                        "continue");
-
-                    if (!continueResult.Success)
-                    {
-                        return continueResult;
-                    }
-
-                    continueRequested = true;
-                    _logger.Info($"Continue requested for RustDesk service '{ServiceName}'.");
-                    break;
-
-                case RustDeskServiceStatus.Stopped:
-                case RustDeskServiceStatus.StartPending:
-                case RustDeskServiceStatus.StopPending:
-                case RustDeskServiceStatus.ContinuePending:
-                case RustDeskServiceStatus.PausePending:
-                case RustDeskServiceStatus.Paused:
-                    break;
-
-                default:
-                    return OperationResult.Failed(
-                        ErrorCode.InstallationFailed,
-                        "The RustDesk service reported an unsupported state.",
-                        $"Service '{ServiceName}' reported status {statusResult.Value}.");
-            }
-
-            if (attempt < _pollingAttempts)
-            {
-                await _delay(_pollingDelay, cancellationToken).ConfigureAwait(false);
-            }
+        }
+        catch (OperationCanceledException)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            return OperationResult.Failed(
+                ErrorCode.InstallationFailed,
+                "The RustDesk service did not reach the running state in time.",
+                $"Service '{ServiceName}' was not Running within " +
+                $"{_serviceStartTimeout:c}.");
         }
 
         return OperationResult.Failed(
             ErrorCode.InstallationFailed,
             "The RustDesk service did not reach the running state.",
-            $"Service '{ServiceName}' was not Running after {_pollingAttempts} checks.");
+            $"Service '{ServiceName}' was not Running after {_pollingAttempts} checks " +
+            $"within {_serviceStartTimeout:c}.");
+    }
+
+    private async Task TerminateHelperIfRunningAsync(
+        IServiceInstallProcess installProcess,
+        CancellationToken cancellationToken)
+    {
+        if (installProcess.HasExited)
+        {
+            return;
+        }
+
+        _logger.Info(
+            "SCM confirmed the RustDesk service; terminating only the auxiliary " +
+            "installation process started by the configurator.");
+        var terminationResult = await installProcess
+            .TerminateAsync(HelperTerminationTimeout, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (terminationResult.Success)
+        {
+            _logger.Info("RustDesk service installation helper terminated.");
+        }
+        else
+        {
+            _logger.Warning(
+                "RustDesk service installation helper could not be terminated cleanly; " +
+                "SCM already confirmed that the service is installed.");
+        }
     }
 
     private OperationResult InvokeServiceAction(Action action, string actionName)

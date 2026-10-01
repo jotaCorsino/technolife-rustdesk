@@ -30,7 +30,7 @@ public sealed class WindowsSetupWorkflowRunner : ISetupWorkflowRunner
             WindowsRustDeskPaths.FromCurrentEnvironment());
         var processRunner = new SystemProcessRunner();
         var serviceManager = new WindowsRustDeskServiceManager(
-            processRunner,
+            new SystemServiceInstallProcessLauncher(),
             new SystemWindowsServiceController(),
             logger);
         var configurationWorkflow = new RustDeskConfigurationWorkflow(
